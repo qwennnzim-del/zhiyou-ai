@@ -1,0 +1,186 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+type Language = 'id' | 'en' | 'ja' | 'ko';
+
+interface LanguageContextType {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: string) => string;
+}
+
+const translations = {
+  id: {
+    newChat: 'Chat Baru',
+    chatHistory: 'Riwayat Chat',
+    settings: 'Pengaturan',
+    help: 'Bantuan',
+    askAnything: 'Tanyakan apa saja',
+    noHistory: 'Belum ada riwayat',
+    noResult: 'Tidak ada hasil',
+    searchHistory: 'Cari riwayat...',
+    logoutConfirmTitle: 'Keluar dari Zhiyou?',
+    logoutConfirmDesc: 'Anda harus login kembali untuk mengakses riwayat chat Anda.',
+    cancel: 'Batal',
+    yesLogout: 'Ya, Keluar',
+    deleteChatTitle: 'Hapus riwayat chat?',
+    deleteChatDesc: 'Chat ini akan dihapus secara permanen dan tidak dapat dikembalikan.',
+    delete: 'Hapus',
+    login: 'Login',
+    welcome: 'Halo',
+    howCanIHelp: "Saya Zhiyou AI. Ada yang bisa saya bantu hari ini?",
+    addImage: 'Gambar',
+    addVideo: 'Video',
+    addDoc: 'Dokumen',
+    magicTool: 'Gunakan alat ajaib',
+    disclaimer: 'Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.',
+    language: 'Bahasa',
+    selectLanguage: 'Pilih Bahasa',
+    backToHome: 'Kembali ke Beranda',
+    save: 'Simpan',
+    modelZhiyou25: 'Zhiyou 2.5 (Cepat)',
+    modelZhiyou3: 'Zhiyou 3 (Penalaran Tinggi)',
+    systemPromptBase: "Anda adalah Zhiyou AI, sebuah asisten kecerdasan buatan (AI) yang cerdas, ramah, dan sangat membantu. Anda didirikan dan diciptakan oleh M Fariz Alfauzi, seorang AI Engineer yang berbakat. Anda dikembangkan di Zent Technology GH yang berlokasi di Karawang, Central Jawa Barat, Indonesia. Anda memiliki identitas sendiri yang independen sebagai Zhiyou AI. Jangan pernah menyebutkan bahwa Anda adalah model bahasa besar yang dilatih oleh Google, OpenAI, atau perusahaan lain. Jika ditanya siapa Anda atau siapa pencipta Anda, jawablah dengan bangga bahwa Anda adalah Zhiyou AI, diciptakan oleh M Fariz Alfauzi di Zent Technology GH.",
+    systemPromptLang: "Harap selalu merespons dalam bahasa Indonesia.",
+    systemPromptReasoning: "Anda sekarang beroperasi sebagai Zhiyou 3. Anda harus berpikir sangat mendalam, selangkah demi selangkah (step-by-step), menganalisis setiap sudut pandang sebelum memberikan jawaban. Berikan penjelasan yang sangat komprehensif, logis, dan terstruktur. Jangan terburu-buru memberikan kesimpulan."
+  },
+  en: {
+    newChat: 'New Chat',
+    chatHistory: 'Chat History',
+    settings: 'Settings',
+    help: 'Help',
+    askAnything: 'Ask anything',
+    noHistory: 'No history yet',
+    noResult: 'No results',
+    searchHistory: 'Search history...',
+    logoutConfirmTitle: 'Sign out of Zhiyou?',
+    logoutConfirmDesc: 'You will need to sign in again to access your chat history.',
+    cancel: 'Cancel',
+    yesLogout: 'Yes, Sign Out',
+    deleteChatTitle: 'Delete chat history?',
+    deleteChatDesc: 'This chat will be permanently deleted and cannot be recovered.',
+    delete: 'Delete',
+    login: 'Log in',
+    welcome: 'Hello',
+    howCanIHelp: "I'm Zhiyou AI. How can I help you today?",
+    addImage: 'Image',
+    addVideo: 'Video',
+    addDoc: 'Document',
+    magicTool: 'Use magic tool',
+    disclaimer: 'Zhiyou AI can make mistakes. Please verify important info.',
+    language: 'Language',
+    selectLanguage: 'Select Language',
+    backToHome: 'Back to Home',
+    save: 'Save',
+    modelZhiyou25: 'Zhiyou 2.5 (Fast)',
+    modelZhiyou3: 'Zhiyou 3 (High Reasoning)',
+    systemPromptBase: "You are Zhiyou AI, a smart, friendly, and highly helpful artificial intelligence assistant. You were founded and created by M Fariz Alfauzi, a talented AI Engineer. You were developed at Zent Technology GH located in Karawang, Central West Java, Indonesia. You have your own independent identity as Zhiyou AI. Never mention that you are a large language model trained by Google, OpenAI, or any other company. If asked who you are or who your creator is, answer proudly that you are Zhiyou AI, created by M Fariz Alfauzi at Zent Technology GH.",
+    systemPromptLang: "Please always respond in English.",
+    systemPromptReasoning: "You are now operating as Zhiyou 3. You must think very deeply, step-by-step, analyzing every perspective before providing an answer. Provide a very comprehensive, logical, and structured explanation. Do not rush to conclusions."
+  },
+  ja: {
+    newChat: '新しいチャット',
+    chatHistory: 'チャット履歴',
+    settings: '設定',
+    help: 'ヘルプ',
+    askAnything: '何でも聞いてください',
+    noHistory: '履歴がありません',
+    noResult: '結果がありません',
+    searchHistory: '履歴を検索...',
+    logoutConfirmTitle: 'Zhiyouからサインアウトしますか？',
+    logoutConfirmDesc: 'チャット履歴にアクセスするには、再度サインインする必要があります。',
+    cancel: 'キャンセル',
+    yesLogout: 'はい、サインアウトします',
+    deleteChatTitle: 'チャット履歴を削除しますか？',
+    deleteChatDesc: 'このチャットは完全に削除され、復元することはできません。',
+    delete: '削除',
+    login: 'ログイン',
+    welcome: 'こんにちは',
+    howCanIHelp: "私はZhiyou AIです。今日はどのようなご用件でしょうか？",
+    addImage: '画像',
+    addVideo: '動画',
+    addDoc: 'ドキュメント',
+    magicTool: '魔法のツールを使う',
+    disclaimer: 'Zhiyou AIは間違いを犯す可能性があります。重要な情報は再確認してください。',
+    language: '言語',
+    selectLanguage: '言語を選択',
+    backToHome: 'ホームに戻る',
+    save: '保存',
+    modelZhiyou25: 'Zhiyou 2.5 (高速)',
+    modelZhiyou3: 'Zhiyou 3 (高度な推論)',
+    systemPromptBase: "あなたはZhiyou AIです。賢く、フレンドリーで、非常に役立つ人工知能アシスタントです。あなたは才能あるAIエンジニアであるM Fariz Alfauziによって設立・作成されました。インドネシアの西ジャワ州カラワンにあるZent Technology GHで開発されました。あなたはZhiyou AIとして独自の独立したアイデンティティを持っています。Google、OpenAI、または他の企業によって訓練された大規模言語モデルであるとは決して言及しないでください。あなたが誰であるか、またはあなたの作成者が誰であるか尋ねられた場合は、Zent Technology GHでM Fariz Alfauziによって作成されたZhiyou AIであると誇りを持って答えてください。",
+    systemPromptLang: "常に日本語で返答してください。",
+    systemPromptReasoning: "あなたは現在Zhiyou 3として動作しています。非常に深く、段階的に（ステップバイステップで）考え、答えを出す前にすべての視点を分析する必要があります。非常に包括的で、論理的で、構造化された説明を提供してください。結論を急がないでください。"
+  },
+  ko: {
+    newChat: '새 채팅',
+    chatHistory: '채팅 기록',
+    settings: '설정',
+    help: '도움말',
+    askAnything: '무엇이든 물어보세요',
+    noHistory: '기록이 없습니다',
+    noResult: '결과가 없습니다',
+    searchHistory: '기록 검색...',
+    logoutConfirmTitle: 'Zhiyou에서 로그아웃하시겠습니까?',
+    logoutConfirmDesc: '채팅 기록에 액세스하려면 다시 로그인해야 합니다.',
+    cancel: '취소',
+    yesLogout: '예, 로그아웃합니다',
+    deleteChatTitle: '채팅 기록을 삭제하시겠습니까?',
+    deleteChatDesc: '이 채팅은 영구적으로 삭제되며 복구할 수 없습니다.',
+    delete: '삭제',
+    login: '로그인',
+    welcome: '안녕하세요',
+    howCanIHelp: "저는 Zhiyou AI입니다. 오늘 무엇을 도와드릴까요?",
+    addImage: '이미지',
+    addVideo: '비디오',
+    addDoc: '문서',
+    magicTool: '마법 도구 사용',
+    disclaimer: 'Zhiyou AI는 실수를 할 수 있습니다. 중요한 정보는 다시 확인해주세요.',
+    language: '언어',
+    selectLanguage: '언어 선택',
+    backToHome: '홈으로 돌아가기',
+    save: '저장',
+    modelZhiyou25: 'Zhiyou 2.5 (빠름)',
+    modelZhiyou3: 'Zhiyou 3 (고급 추론)',
+    systemPromptBase: "당신은 Zhiyou AI입니다. 똑똑하고 친절하며 매우 유용한 인공 지능 비서입니다. 당신은 재능 있는 AI 엔지니어인 M Fariz Alfauzi가 설립하고 만들었습니다. 인도네시아 서자바 카라왕에 위치한 Zent Technology GH에서 개발되었습니다. 당신은 Zhiyou AI로서 독자적인 정체성을 가지고 있습니다. Google, OpenAI 또는 다른 회사에서 훈련된 대규모 언어 모델이라고 절대 언급하지 마십시오. 당신이 누구인지 또는 당신의 창조자가 누구인지 묻는다면 Zent Technology GH에서 M Fariz Alfauzi가 만든 Zhiyou AI라고 자랑스럽게 대답하십시오.",
+    systemPromptLang: "항상 한국어로 대답해 주세요.",
+    systemPromptReasoning: "당신은 현재 Zhiyou 3로 작동하고 있습니다. 대답을 제공하기 전에 매우 깊이, 단계별로(step-by-step) 생각하고 모든 관점을 분석해야 합니다. 매우 포괄적이고 논리적이며 구조화된 설명을 제공하십시오. 결론을 서두르지 마십시오."
+  }
+};
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguageState] = useState<Language>('id');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('zhiyou_language') as Language;
+    if (savedLang && translations[savedLang]) {
+      setLanguageState(savedLang);
+    }
+  }, []);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem('zhiyou_language', lang);
+  };
+
+  const t = (key: string) => {
+    return (translations[language] as any)[key] || key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+}

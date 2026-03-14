@@ -11,6 +11,7 @@ import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from './contexts/LanguageContext';
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
@@ -71,17 +72,25 @@ export default function ZhiyouApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const { t, language } = useLanguage();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node)) {
         setIsAttachmentMenuOpen(false);
+      }
+      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target as Node)) {
+        setIsModelMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -225,13 +234,19 @@ export default function ZhiyouApp() {
   };
 
   useEffect(() => {
+    let systemInstruction = t('systemPromptBase') + '\n\n' + t('systemPromptLang');
+    
+    if (selectedModel === 'zhiyou-3') {
+      systemInstruction += '\n\n[MODE PENALARAN TINGGI AKTIF]: ' + t('systemPromptReasoning');
+    }
+
     chatRef.current = ai.chats.create({
-      model: selectedModel,
+      model: 'gemini-2.5-flash', // Always use 2.5 flash under the hood
       config: {
-        systemInstruction: "Anda adalah Zhiyou AI, sebuah asisten kecerdasan buatan (AI) yang cerdas, ramah, dan sangat membantu. Anda didirikan dan diciptakan oleh M Fariz Alfauzi, seorang AI Engineer yang berbakat. Anda dikembangkan di Zent Technology GH yang berlokasi di Karawang, Central Jawa Barat, Indonesia. Anda memiliki identitas sendiri yang independen sebagai Zhiyou AI. Jangan pernah menyebutkan bahwa Anda adalah model bahasa besar yang dilatih oleh Google, OpenAI, atau perusahaan lain. Jika ditanya siapa Anda atau siapa pencipta Anda, jawablah dengan bangga bahwa Anda adalah Zhiyou AI, diciptakan oleh M Fariz Alfauzi di Zent Technology GH.",
+        systemInstruction: systemInstruction,
       }
     });
-  }, [selectedModel]);
+  }, [selectedModel, language, t]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -239,6 +254,12 @@ export default function ZhiyouApp() {
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
+    
+    // Typing animation logic
+    setIsTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 500);
+
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
@@ -390,7 +411,7 @@ export default function ZhiyouApp() {
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                   <ZhiyouLogo className="w-4 h-4" />
                 </div>
-                <span className="font-medium">Chat Baru</span>
+                <span className="font-medium">{t('newChat')}</span>
               </button>
               <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all">
                 <X className="w-5 h-5 text-gray-500" />
@@ -402,7 +423,7 @@ export default function ZhiyouApp() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="text" 
-                  placeholder="Cari riwayat..." 
+                  placeholder={t('searchHistory')} 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
@@ -411,7 +432,7 @@ export default function ZhiyouApp() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-3">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-3">Riwayat Chat</div>
+              <div className="text-xs font-semibold text-gray-500 mb-2 px-3">{t('chatHistory')}</div>
               {chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
                 chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).map((chat, idx) => (
                   <motion.div 
@@ -430,7 +451,7 @@ export default function ZhiyouApp() {
                     <button 
                       onClick={(e) => { e.stopPropagation(); setChatToDelete(chat.id); }}
                       className="absolute right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 active:scale-90 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                      title="Hapus chat"
+                      title={t('delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -438,17 +459,17 @@ export default function ZhiyouApp() {
                 ))
               ) : (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-gray-400 italic">
-                  {searchQuery ? 'Tidak ada hasil' : 'Belum ada riwayat'}
+                  {searchQuery ? t('noResult') : t('noHistory')}
                 </motion.div>
               )}
             </div>
             
             <div className="p-4 border-t border-gray-200 space-y-1">
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
-                <Settings className="w-4 h-4" /> Pengaturan
-              </button>
+              <Link href="/settings" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
+                <Settings className="w-4 h-4" /> {t('settings')}
+              </Link>
               <Link href="/help" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
-                <HelpCircle className="w-4 h-4" /> Bantuan
+                <HelpCircle className="w-4 h-4" /> {t('help')}
               </Link>
             </div>
           </motion.aside>
@@ -463,14 +484,42 @@ export default function ZhiyouApp() {
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
           
-          <div className="flex-1 flex justify-center md:justify-start md:ml-4">
-            <button className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 active:scale-95 rounded-full text-sm font-medium transition-all border border-gray-200">
+          <div className="flex-1 flex justify-center md:justify-start md:ml-4 relative" ref={modelMenuRef}>
+            <button 
+              onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 active:scale-95 rounded-full text-sm font-medium transition-all border border-gray-200"
+            >
               <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
-              Zhiyou 2.5
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              {selectedModel === 'gemini-2.5-flash' ? 'Zhiyou 2.5' : 'Zhiyou 3'}
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
             </button>
+            
+            <AnimatePresence>
+              {isModelMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-1/2 md:left-0 -translate-x-1/2 md:translate-x-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[220px]"
+                >
+                  <button 
+                    onClick={() => { setSelectedModel('gemini-2.5-flash'); setIsModelMenuOpen(false); }}
+                    className={`flex flex-col px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-left transition-all ${selectedModel === 'gemini-2.5-flash' ? 'bg-blue-50/50' : ''}`}
+                  >
+                    <span className="text-sm font-semibold text-gray-900">{t('modelZhiyou25')}</span>
+                  </button>
+                  <button 
+                    onClick={() => { setSelectedModel('zhiyou-3'); setIsModelMenuOpen(false); }}
+                    className={`flex flex-col px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-left transition-all ${selectedModel === 'zhiyou-3' ? 'bg-blue-50/50' : ''}`}
+                  >
+                    <span className="text-sm font-semibold text-gray-900">{t('modelZhiyou3')}</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           {user ? (
@@ -512,7 +561,7 @@ export default function ZhiyouApp() {
                 transition={{ delay: 0.1, duration: 0.5 }}
                 className="text-4xl sm:text-5xl font-semibold mb-4 text-center tracking-tight"
               >
-                Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">{user?.displayName?.split(' ')[0] || 'User'}</span>
+                {t('welcome')}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">{user?.displayName?.split(' ')[0] || 'User'}</span>
               </motion.h1>
               
               <motion.p 
@@ -521,7 +570,7 @@ export default function ZhiyouApp() {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="text-gray-500 text-lg sm:text-xl text-center max-w-md"
               >
-                I'm Zhiyou AI. How can I help you today?
+                {t('howCanIHelp')}
               </motion.p>
             </div>
           ) : (
@@ -609,13 +658,13 @@ export default function ZhiyouApp() {
             <div className="relative group rounded-3xl z-10">
               {/* Glow Effect */}
               <div 
-                className="absolute -inset-[2px] rounded-3xl opacity-50 blur-xl animate-border-spin z-0 transition-opacity duration-300 group-focus-within:opacity-100"
+                className={`absolute -inset-[2px] rounded-3xl blur-xl z-0 transition-all duration-300 ${isTyping ? 'animate-border-spin-fast opacity-80 scale-105' : 'animate-border-spin opacity-50 group-focus-within:opacity-100'}`}
                 style={{ backgroundImage: 'conic-gradient(from var(--angle), transparent 0%, transparent 40%, #3b82f6 50%, #8b5cf6 65%, #ec4899 80%, #f43f5e 100%)' }}
               ></div>
               
               {/* Border Effect */}
               <div 
-                className="absolute -inset-[2px] rounded-3xl opacity-100 animate-border-spin z-0"
+                className={`absolute -inset-[2px] rounded-3xl z-0 transition-all duration-300 ${isTyping ? 'animate-border-spin-fast opacity-100' : 'animate-border-spin opacity-100'}`}
                 style={{ backgroundImage: 'conic-gradient(from var(--angle), transparent 0%, transparent 40%, #3b82f6 50%, #8b5cf6 65%, #ec4899 80%, #f43f5e 100%)' }}
               ></div>
 
@@ -661,7 +710,7 @@ export default function ZhiyouApp() {
                       handleSend();
                     }
                   }}
-                  placeholder="Tanyakan apa saja"
+                  placeholder={t('askAnything')}
                   className={`w-full bg-transparent resize-none outline-none max-h-48 min-h-[40px] text-gray-800 placeholder:text-gray-500 text-base transition-opacity duration-300 ${input.length > 0 ? 'opacity-100' : 'opacity-70'}`}
                   rows={1}
                 />
@@ -690,25 +739,25 @@ export default function ZhiyouApp() {
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
                             </div>
-                            Gambar
+                            {t('addImage')}
                           </button>
                           <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                               <Video className="w-4 h-4 text-purple-500" />
                             </div>
-                            Video
+                            {t('addVideo')}
                           </button>
                           <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
                               <FileText className="w-4 h-4 text-orange-500" />
                             </div>
-                            Dokumen
+                            {t('addDoc')}
                           </button>
                         </motion.div>
                       )}
                     </AnimatePresence>
 
-                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title="Gunakan alat ajaib">
+                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
                       <Wand2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -732,7 +781,7 @@ export default function ZhiyouApp() {
               multiple 
             />
             <p className="text-center text-xs text-gray-400 mt-4 hidden sm:block relative z-10">
-              Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.<br/>
+              {t('disclaimer')}<br/>
               &copy;2026 Zhiyou AI | Zent Inc.
             </p>
           </div>
@@ -749,20 +798,20 @@ export default function ZhiyouApp() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
             >
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Keluar dari Zhiyou?</h3>
-              <p className="text-gray-500 text-sm mb-6">Anda harus login kembali untuk mengakses riwayat chat Anda.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('logoutConfirmTitle')}</h3>
+              <p className="text-gray-500 text-sm mb-6">{t('logoutConfirmDesc')}</p>
               <div className="flex gap-3 justify-end">
                 <button 
                   onClick={() => setShowLogoutConfirm(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  Batal
+                  {t('cancel')}
                 </button>
                 <button 
                   onClick={confirmLogout}
                   className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
                 >
-                  Ya, Keluar
+                  {t('yesLogout')}
                 </button>
               </div>
             </motion.div>
@@ -780,20 +829,20 @@ export default function ZhiyouApp() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
             >
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Hapus riwayat chat?</h3>
-              <p className="text-gray-500 text-sm mb-6">Chat ini akan dihapus secara permanen dan tidak dapat dikembalikan.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('deleteChatTitle')}</h3>
+              <p className="text-gray-500 text-sm mb-6">{t('deleteChatDesc')}</p>
               <div className="flex gap-3 justify-end">
                 <button 
                   onClick={() => setChatToDelete(null)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  Batal
+                  {t('cancel')}
                 </button>
                 <button 
                   onClick={confirmDeleteChat}
                   className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
                 >
-                  Hapus
+                  {t('delete')}
                 </button>
               </div>
             </motion.div>

@@ -16,3 +16,7 @@
 .animate-border-spin {
   animation: spin-angle 4s linear infinite;
 }
+
+.animate-border-spin-fast {
+  animation: spin-angle 0.8s linear infinite;
+}
