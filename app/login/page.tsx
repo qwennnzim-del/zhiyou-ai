@@ -6,6 +6,7 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
 import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const ZhiyouLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -151,7 +152,7 @@ export default function LoginPage() {
 
           <div className="text-[10px] text-gray-400 text-center leading-relaxed px-4">
             By signing in with an account, you agree to SO's<br/>
-            <a href="#" className="underline hover:text-gray-600">Terms of Service</a> and <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
+            <Link href="/terms" className="underline hover:text-gray-600">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-gray-600">Privacy Policy</Link>.
           </div>
         </div>
       </motion.div>
