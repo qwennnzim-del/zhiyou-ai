@@ -29,6 +29,13 @@ type Message = {
   attachments?: Attachment[];
 };
 
+type Chat = {
+  id: string;
+  messages?: Message[];
+  title?: string;
+  updatedAt?: any;
+};
+
 const ZhiyouLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <defs>
@@ -51,7 +58,7 @@ export default function ZhiyouApp() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [chatHistory, setChatHistory] = useState<Chat[]>([]);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const router = useRouter();
   const [input, setInput] = useState('');
@@ -100,7 +107,7 @@ export default function ZhiyouApp() {
       const history = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })) as Chat[];
       setChatHistory(history);
       
       if (!chatId && history.length > 0 && messages.length === 0) {
