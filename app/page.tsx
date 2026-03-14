@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip } from 'lucide-react';
+import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -51,6 +51,7 @@ export default function ZhiyouApp() {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<'chat' | 'help'>('chat');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
@@ -233,7 +234,7 @@ export default function ZhiyouApp() {
             className={`fixed md:static inset-y-0 left-0 w-72 bg-[#f9f9f9] border-r border-gray-200 z-50 flex flex-col ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}
           >
             <div className="p-4 flex items-center justify-between">
-              <button onClick={() => setMessages([])} className="flex items-center gap-2 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors w-full">
+              <button onClick={() => { setCurrentView('chat'); setMessages([]); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors w-full">
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                   <ZhiyouLogo className="w-4 h-4" />
                 </div>
@@ -258,7 +259,7 @@ export default function ZhiyouApp() {
               <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700">
                 <Settings className="w-4 h-4" /> Pengaturan
               </button>
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700">
+              <button onClick={() => { setCurrentView('help'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${currentView === 'help' ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}>
                 <HelpCircle className="w-4 h-4" /> Bantuan
               </button>
             </div>
@@ -275,7 +276,7 @@ export default function ZhiyouApp() {
           </button>
           
           <div className="flex-1 flex justify-center md:justify-start md:ml-4">
-            <button className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 rounded-full text-sm font-medium transition-colors border border-gray-200">
+            <button onClick={() => setCurrentView('chat')} className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 rounded-full text-sm font-medium transition-colors border border-gray-200">
               <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
@@ -292,9 +293,11 @@ export default function ZhiyouApp() {
           </button>
         </header>
 
-        {/* Chat Area */}
-        <main className="flex-1 overflow-y-auto">
-          {messages.length === 0 ? (
+        {currentView === 'chat' ? (
+          <>
+            {/* Chat Area */}
+            <main className="flex-1 overflow-y-auto">
+              {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full px-4 -mt-10">
               <div className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/10">
                 <ZhiyouLogo className="w-10 h-10" />
@@ -514,6 +517,78 @@ export default function ZhiyouApp() {
             </p>
           </div>
         </div>
+          </>
+        ) : (
+          <main className="flex-1 overflow-y-auto p-6 md:p-12 bg-white">
+            <div className="max-w-3xl mx-auto">
+              <button 
+                onClick={() => setCurrentView('chat')} 
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium mb-8 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Kembali ke Chat
+              </button>
+              
+              <div className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600">
+                <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                    <BookOpen className="w-5 h-5 text-blue-600" />
+                  </div>
+                  Pusat Bantuan Zhiyou
+                </h1>
+                
+                <div className="space-y-8 mt-8">
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Apa itu Zhiyou?</h2>
+                    <p>
+                      Zhiyou adalah asisten AI cerdas yang dirancang untuk membantu Anda dalam berbagai tugas, mulai dari menjawab pertanyaan, menganalisis dokumen, hingga menghasilkan ide kreatif. Dibangun dengan teknologi mutakhir, Zhiyou bertindak sebagai rekan kerja virtual Anda yang siap membantu kapan saja.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Bagaimana cara menggunakan Zhiyou?</h2>
+                    <p>
+                      Sangat mudah! Cukup ketikkan pertanyaan atau instruksi Anda di kotak teks di bagian bawah layar. Anda juga dapat melampirkan file (gambar, video, dokumen) dengan mengklik ikon <strong>+</strong>. Zhiyou akan memproses input Anda dan memberikan respons yang relevan.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Bagaimana cara kerja Zhiyou?</h2>
+                    <p>
+                      Zhiyou menggunakan model bahasa besar (Large Language Model) canggih dari Google (Gemini). Saat Anda mengirim pesan, Zhiyou menganalisis konteks, mencari informasi yang relevan, dan menghasilkan teks atau analisis berdasarkan pola yang dipelajarinya dari jutaan data. Fitur multimodal kami memungkinkan AI untuk "melihat" dan memahami gambar serta dokumen yang Anda unggah.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Pembuatan Framework Zhiyou</h2>
+                    <p>
+                      Framework Zhiyou dibangun di atas arsitektur <strong>Next.js</strong> yang modern dan responsif, menggunakan <strong>React</strong> untuk antarmuka pengguna, dan <strong>Tailwind CSS</strong> untuk styling. Framework ini dirancang agar ringan, cepat, dan mudah diintegrasikan dengan berbagai API AI, memastikan pengalaman pengguna yang mulus tanpa jeda. Animasi halus didukung oleh <strong>Framer Motion</strong>.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Cara Login di Zhiyou</h2>
+                    <p>
+                      Saat ini, Zhiyou dapat digunakan secara langsung tanpa login untuk fitur dasar. Namun, untuk menyimpan riwayat percakapan dan mengakses fitur lanjutan, Anda dapat mengklik tombol <strong>Login</strong> di sudut kanan atas layar. Anda akan diarahkan ke halaman autentikasi aman menggunakan akun Google atau email Anda.
+                    </p>
+                  </section>
+
+                  <section>
+                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Cara mendapatkan fitur Pro Zhiyou</h2>
+                    <p>
+                      Fitur Pro memberikan akses ke model AI yang lebih kuat (seperti Gemini Pro), batas unggahan file yang lebih besar, dan respons yang lebih cepat. Untuk berlangganan:
+                    </p>
+                    <ol className="list-decimal pl-5 space-y-2 mt-2">
+                      <li>Buka menu <strong>Pengaturan</strong> di sidebar kiri.</li>
+                      <li>Pilih tab <strong>Langganan</strong>.</li>
+                      <li>Pilih paket <strong>Zhiyou Pro</strong>.</li>
+                      <li>Lakukan pembayaran melalui kartu kredit atau e-wallet yang didukung.</li>
+                    </ol>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </main>
+        )}
       </div>
     </div>
   );
