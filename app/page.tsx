@@ -7,6 +7,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { GoogleGenAI } from '@google/genai';
 import Link from 'next/link';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
@@ -45,6 +49,11 @@ const ZhiyouLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
 
 export default function ZhiyouApp() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const router = useRouter();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -68,6 +77,64 @@ export default function ZhiyouApp() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        router.push('/login');
+      }
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const chatsRef = collection(db, 'users', user.uid, 'chats');
+    const q = query(chatsRef, orderBy('updatedAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const history = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setChatHistory(history);
+      
+      if (!chatId && history.length > 0 && messages.length === 0) {
+        setChatId(history[0].id);
+        setMessages(history[0].messages || []);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [user, chatId, messages.length]);
+
+  const loadChat = async (id: string) => {
+    if (!user) return;
+    setChatId(id);
+    setIsSidebarOpen(false);
+    
+    try {
+      const chatDoc = await getDoc(doc(db, 'users', user.uid, 'chats', id));
+      if (chatDoc.exists()) {
+        setMessages(chatDoc.data().messages || []);
+      }
+    } catch (error) {
+      console.error("Error loading chat:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
@@ -184,16 +251,51 @@ export default function ZhiyouApp() {
       const responseStream = await chatRef.current.sendMessageStream({ message: messageParts });
       
       let firstChunk = true;
+      let fullText = '';
       for await (const chunk of responseStream) {
         if (firstChunk) {
           setIsThinking(false);
           firstChunk = false;
         }
+        fullText += chunk.text;
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1].text += chunk.text;
+          newMessages[newMessages.length - 1].text = fullText;
           return newMessages;
         });
+      }
+
+      if (user) {
+        try {
+          const chatRef = chatId 
+            ? doc(db, 'users', user.uid, 'chats', chatId)
+            : doc(collection(db, 'users', user.uid, 'chats'));
+            
+          if (!chatId) setChatId(chatRef.id);
+          
+          setMessages(prev => {
+            const msgsToSave = prev.map(m => ({
+              role: m.role,
+              text: m.text,
+              attachments: m.attachments?.map(a => ({
+                base64: a.base64,
+                mimeType: a.mimeType,
+                name: a.name,
+                size: a.size
+              })) || []
+            }));
+            
+            setDoc(chatRef, {
+              messages: msgsToSave,
+              updatedAt: serverTimestamp(),
+              title: msgsToSave[0]?.text?.substring(0, 30) || 'Chat Baru'
+            }, { merge: true }).catch(err => console.error("Firestore save error:", err));
+            
+            return prev;
+          });
+        } catch (dbError) {
+          console.error("Error saving to Firestore:", dbError);
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -207,6 +309,14 @@ export default function ZhiyouApp() {
       setIsLoading(false);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="w-10 h-10 rounded-full border-4 border-blue-100 border-t-blue-500 animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[100dvh] bg-white text-gray-900 font-sans overflow-hidden">
@@ -234,7 +344,7 @@ export default function ZhiyouApp() {
             className={`fixed md:static inset-y-0 left-0 w-72 bg-[#f9f9f9] border-r border-gray-200 z-50 flex flex-col ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}
           >
             <div className="p-4 flex items-center justify-between">
-              <button onClick={() => { setMessages([]); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors w-full">
+              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors w-full">
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                   <ZhiyouLogo className="w-4 h-4" />
                 </div>
@@ -246,13 +356,20 @@ export default function ZhiyouApp() {
             </div>
             
             <div className="flex-1 overflow-y-auto p-3">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-3">Hari Ini</div>
-              <button className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700 truncate">
-                Cara membuat website
-              </button>
-              <button className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700 truncate">
-                Resep nasi goreng
-              </button>
+              <div className="text-xs font-semibold text-gray-500 mb-2 px-3">Riwayat Chat</div>
+              {chatHistory.length > 0 ? (
+                chatHistory.map((chat) => (
+                  <button 
+                    key={chat.id}
+                    onClick={() => loadChat(chat.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm truncate transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}
+                  >
+                    {chat.title}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-gray-400 italic">Belum ada riwayat</div>
+              )}
             </div>
             
             <div className="p-4 border-t border-gray-200 space-y-1">
@@ -285,12 +402,24 @@ export default function ZhiyouApp() {
             </button>
           </div>
           
-          <button className="flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-sm font-medium text-gray-900 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 hover:opacity-90 transition-opacity">
-            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
-              <span className="text-[12px] font-bold text-blue-600">G</span>
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-sm font-medium text-gray-900">{user.displayName || 'User'}</span>
+              </div>
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
+              <button onClick={handleLogout} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Logout">
+                <LogIn className="w-5 h-5 rotate-180" />
+              </button>
             </div>
-            Login
-          </button>
+          ) : (
+            <Link href="/login" className="flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-sm font-medium text-gray-900 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 hover:opacity-90 transition-opacity">
+              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <span className="text-[12px] font-bold text-blue-600">G</span>
+              </div>
+              Login
+            </Link>
+          )}
         </header>
 
         {/* Chat Area */}
@@ -302,7 +431,7 @@ export default function ZhiyouApp() {
               </div>
               
               <h1 className="text-4xl sm:text-5xl font-semibold mb-4 text-center tracking-tight">
-                Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">User</span>
+                Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">{user?.displayName?.split(' ')[0] || 'User'}</span>
               </h1>
               
               <p className="text-gray-500 text-lg sm:text-xl text-center max-w-md">
