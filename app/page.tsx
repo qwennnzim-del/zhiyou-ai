@@ -25,7 +25,9 @@ import {
   Share2,
   Copy,
   Check,
-  ExternalLink
+  ExternalLink,
+  Pencil,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -106,6 +108,8 @@ export default function ZhiyouApp() {
   const [feedbackMessageIdx, setFeedbackMessageIdx] = useState<number | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [copyToast, setCopyToast] = useState(false);
+  const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(null);
+  const [editInput, setEditInput] = useState('');
   const { t, language } = useLanguage();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -334,18 +338,25 @@ export default function ZhiyouApp() {
     }
   };
 
-  const handleSend = async () => {
-    if ((!input.trim() && attachments.length === 0) || isLoading) return;
+  const handleSend = async (overrideText?: string) => {
+    if ((!input.trim() && !overrideText && attachments.length === 0) || isLoading) return;
     
-    const userText = input.trim();
-    const currentAttachments = [...attachments];
+    const userText = overrideText || input.trim();
+    const currentAttachments = overrideText ? [] : [...attachments];
     
-    setInput('');
-    setAttachments([]);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    if (!overrideText) {
+      setInput('');
+      setAttachments([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
     
+    if (editingMessageIdx !== null) {
+      setMessages(prev => prev.slice(0, editingMessageIdx));
+      setEditingMessageIdx(null);
+    }
+
     setMessages(prev => [...prev, { role: 'user', text: userText, attachments: currentAttachments }]);
     setIsLoading(true);
     setIsThinking(true);
@@ -695,40 +706,101 @@ export default function ZhiyouApp() {
                     </div>
                   )}
                   
-                  <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#f4f4f5] px-5 py-3 rounded-3xl rounded-tr-sm' : ''}`}>
+                  <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#f4f4f5] px-5 py-3 rounded-3xl rounded-tr-sm relative group/msg' : ''}`}>
                     {msg.role === 'user' ? (
                       <div className="flex flex-col gap-2">
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {msg.attachments.map((att, i) => (
-                              <div key={i} className="flex items-center gap-2 bg-white/60 border border-gray-200/60 rounded-xl p-2 shadow-sm">
-                                {att.previewUrl ? (
-                                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                    <img src={att.previewUrl} alt="preview" className="w-full h-full object-cover" />
-                                  </div>
-                                ) : (
-                                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                    {att.mimeType.startsWith('video/') ? <Video className="w-5 h-5 text-blue-500" /> : <FileText className="w-5 h-5 text-blue-500" />}
-                                  </div>
-                                )}
-                                <div className="flex flex-col min-w-0 pr-2">
-                                  <span className="text-xs font-medium text-gray-700 truncate">{truncateName(att.name)}</span>
-                                  <span className="text-[10px] text-gray-500">{att.size}</span>
-                                </div>
-                              </div>
-                            ))}
+                        {editingMessageIdx === idx ? (
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <textarea
+                              autoFocus
+                              value={editInput}
+                              onChange={(e) => setEditInput(e.target.value)}
+                              className="w-full bg-white border border-gray-200 rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                              rows={3}
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button 
+                                onClick={() => setEditingMessageIdx(null)}
+                                className="px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-200 rounded-lg transition-all"
+                              >
+                                {t('cancel')}
+                              </button>
+                              <button 
+                                onClick={() => handleSend(editInput)}
+                                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+                              >
+                                {t('submit')}
+                              </button>
+                            </div>
                           </div>
+                        ) : (
+                          <>
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {msg.attachments.map((att, i) => (
+                                  <div key={i} className="flex items-center gap-2 bg-white/60 border border-gray-200/60 rounded-xl p-2 shadow-sm">
+                                    {att.previewUrl ? (
+                                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                        <img src={att.previewUrl} alt="preview" className="w-full h-full object-cover" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                        {att.mimeType.startsWith('video/') ? <Video className="w-5 h-5 text-blue-500" /> : <FileText className="w-5 h-5 text-blue-500" />}
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col min-w-0 pr-2">
+                                      <span className="text-xs font-medium text-gray-700 truncate">{truncateName(att.name)}</span>
+                                      <span className="text-[10px] text-gray-500">{att.size}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {msg.text && <p className="text-gray-800 whitespace-pre-wrap">{msg.text}</p>}
+                            <button 
+                              onClick={() => { setEditingMessageIdx(idx); setEditInput(msg.text); }}
+                              className="absolute -left-10 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full opacity-0 group-hover/msg:opacity-100 transition-all active:scale-90"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
-                        {msg.text && <p className="text-gray-800 whitespace-pre-wrap">{msg.text}</p>}
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2 w-full">
-                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-gray-800 leading-relaxed overflow-hidden">
-                          <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {msg.text || '...'}
-                            </ReactMarkdown>
-                          </div>
+                        <div className="text-gray-800 leading-relaxed overflow-hidden">
+                          {isThinking && idx === messages.length - 1 && !msg.text ? (
+                            <div className="flex items-center gap-3 py-2">
+                              <div className="relative w-6 h-6 flex-shrink-0">
+                                <div className="absolute inset-0 rounded-full animate-border-spin border-2 border-transparent" style={{ borderTopColor: '#3b82f6', borderRightColor: '#8b5cf6' }}></div>
+                              </div>
+                              {isSearchEnabled ? (
+                                <div className="flex items-center gap-2">
+                                  <svg className="w-4 h-4 animate-pulse" viewBox="0 0 24 24">
+                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                  </svg>
+                                  <span className="text-sm font-medium bg-gradient-to-r from-[#4285F4] via-[#EA4335] via-[#FBBC05] to-[#34A853] bg-clip-text text-transparent animate-pulse">
+                                    {t('searching')}...
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-sm font-medium animate-shimmer">
+                                  {t('thinking')}...
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.text}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
                           
                           {/* Grounding Sources Pill */}
                           {msg.groundingMetadata?.groundingChunks && (
@@ -749,7 +821,6 @@ export default function ZhiyouApp() {
                               </button>
                             </div>
                           )}
-                        </div>
 
                         {/* Message Actions */}
                         <div className="flex items-center gap-1 ml-1">
@@ -871,15 +942,6 @@ export default function ZhiyouApp() {
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[160px]"
                         >
-                          <button 
-                            onClick={() => { setIsSearchEnabled(!isSearchEnabled); setIsAttachmentMenuOpen(false); }}
-                            className={`flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium transition-all text-left ${isSearchEnabled ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
-                          >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSearchEnabled ? 'bg-blue-100' : 'bg-gray-50'}`}>
-                              <Globe className={`w-4 h-4 ${isSearchEnabled ? 'text-blue-600' : 'text-gray-500'}`} />
-                            </div>
-                            {t('searchWeb')}
-                          </button>
                           <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
@@ -902,13 +964,22 @@ export default function ZhiyouApp() {
                       )}
                     </AnimatePresence>
 
+                    <button 
+                      onClick={() => setIsSearchEnabled(!isSearchEnabled)}
+                      className={`p-2 rounded-full transition-all active:scale-90 relative ${isSearchEnabled ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-200/80 text-gray-500'}`} 
+                      title={t('searchWeb')}
+                    >
+                      <Pencil className="w-5 h-5" />
+                      <Sparkles className={`w-3 h-3 absolute -top-0.5 -right-0.5 transition-transform duration-500 ${isSearchEnabled ? 'scale-110 rotate-12 text-blue-500' : 'scale-75 opacity-50'}`} />
+                    </button>
+
                     <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
                       <Wand2 className="w-5 h-5" />
                     </button>
                   </div>
                   
                   <button 
-                    onClick={handleSend}
+                    onClick={() => handleSend()}
                     disabled={(!input.trim() && attachments.length === 0) || isLoading}
                     className="p-2 bg-gray-200 hover:bg-gray-300 active:scale-90 disabled:opacity-50 disabled:hover:bg-gray-200 disabled:active:scale-100 rounded-full transition-all text-gray-700"
                   >
