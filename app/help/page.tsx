@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen } from 'lucide-react';
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans">
+    <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
       <header className="flex-shrink-0 flex items-center p-4 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100">
         <Link href="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
           <ArrowLeft className="w-5 h-5" /> Kembali ke Chat
@@ -71,6 +71,10 @@ export default function HelpPage() {
           </div>
         </div>
       </main>
+      
+      <footer className="py-6 text-center text-sm text-gray-500 border-t border-gray-100 mt-auto">
+        &copy;2026 Zhiyou AI | Zent Inc.
+      </footer>
     </div>
   );
 }

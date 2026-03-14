@@ -133,7 +133,7 @@ export default function ZhiyouApp() {
     chatRef.current = ai.chats.create({
       model: selectedModel,
       config: {
-        systemInstruction: "You are Zhiyou AI, a smart, safe, and helpful AI assistant. You speak Indonesian by default but can understand other languages.",
+        systemInstruction: "Anda adalah Zhiyou AI, sebuah asisten kecerdasan buatan (AI) yang cerdas, ramah, dan sangat membantu. Anda didirikan dan diciptakan oleh M Fariz Alfauzi, seorang AI Engineer yang berbakat. Anda dikembangkan di Zent Technology GH yang berlokasi di Karawang, Central Jawa Barat, Indonesia. Anda memiliki identitas sendiri yang independen sebagai Zhiyou AI. Jangan pernah menyebutkan bahwa Anda adalah model bahasa besar yang dilatih oleh Google, OpenAI, atau perusahaan lain. Jika ditanya siapa Anda atau siapa pencipta Anda, jawablah dengan bangga bahwa Anda adalah Zhiyou AI, diciptakan oleh M Fariz Alfauzi di Zent Technology GH.",
       }
     });
   }, [selectedModel]);
@@ -511,7 +511,8 @@ export default function ZhiyouApp() {
               multiple 
             />
             <p className="text-center text-xs text-gray-400 mt-4 hidden sm:block relative z-10">
-              Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.
+              Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.<br/>
+              &copy;2026 Zhiyou AI | Zent Inc.
             </p>
           </div>
         </div>
