@@ -1,7 +1,32 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen, Search, Trash2 } from 'lucide-react';
+import { 
+  Menu, 
+  Plus, 
+  Wand2, 
+  ArrowUp, 
+  ChevronDown, 
+  X, 
+  Settings, 
+  HelpCircle, 
+  LogIn, 
+  Image as ImageIcon, 
+  Video, 
+  FileText, 
+  Paperclip, 
+  ArrowLeft, 
+  BookOpen, 
+  Search, 
+  Trash2,
+  Globe,
+  ThumbsUp,
+  ThumbsDown,
+  Share2,
+  Copy,
+  Check,
+  ExternalLink
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -28,6 +53,8 @@ type Message = {
   role: 'user' | 'model';
   text: string;
   attachments?: Attachment[];
+  groundingMetadata?: any;
+  feedback?: string;
 };
 
 type Chat = {
@@ -74,6 +101,11 @@ export default function ZhiyouApp() {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+  const [showSources, setShowSources] = useState<any>(null);
+  const [feedbackMessageIdx, setFeedbackMessageIdx] = useState<number | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [copyToast, setCopyToast] = useState(false);
   const { t, language } = useLanguage();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -226,6 +258,42 @@ export default function ZhiyouApp() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopyToast(true);
+    setTimeout(() => setCopyToast(false), 2000);
+  };
+
+  const handleShare = async (text: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Zhiyou AI Chat',
+          text: text,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      handleCopy(text);
+    }
+  };
+
+  const submitFeedback = () => {
+    if (feedbackMessageIdx === null) return;
+    
+    setMessages(prev => {
+      const newMessages = [...prev];
+      newMessages[feedbackMessageIdx].feedback = feedbackText;
+      return newMessages;
+    });
+    
+    // In a real app, you'd send this to Firestore
+    setFeedbackMessageIdx(null);
+    setFeedbackText('');
+  };
+
   const triggerFileInput = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
@@ -297,19 +365,35 @@ export default function ZhiyouApp() {
         });
       });
 
-      const responseStream = await chatRef.current.sendMessageStream({ message: messageParts });
+      const responseStream = await chatRef.current.sendMessageStream({ 
+        message: messageParts,
+        config: {
+          tools: isSearchEnabled ? [{ googleSearch: {} }] : []
+        }
+      });
       
       let firstChunk = true;
       let fullText = '';
+      let groundingMetadata: any = null;
+
       for await (const chunk of responseStream) {
         if (firstChunk) {
           setIsThinking(false);
           firstChunk = false;
         }
         fullText += chunk.text;
+        
+        // Extract grounding metadata if available
+        if (chunk.candidates?.[0]?.groundingMetadata) {
+          groundingMetadata = chunk.candidates[0].groundingMetadata;
+        }
+
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].text = fullText;
+          if (groundingMetadata) {
+            newMessages[newMessages.length - 1].groundingMetadata = groundingMetadata;
+          }
           return newMessages;
         });
       }
@@ -638,10 +722,62 @@ export default function ZhiyouApp() {
                         {msg.text && <p className="text-gray-800 whitespace-pre-wrap">{msg.text}</p>}
                       </div>
                     ) : (
-                      <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {msg.text || '...'}
-                        </ReactMarkdown>
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-gray-800 leading-relaxed overflow-hidden">
+                          <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.text || '...'}
+                            </ReactMarkdown>
+                          </div>
+                          
+                          {/* Grounding Sources Pill */}
+                          {msg.groundingMetadata?.groundingChunks && (
+                            <div className="mt-4 pt-4 border-t border-gray-50">
+                              <button 
+                                onClick={() => setShowSources(msg.groundingMetadata)}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-xs font-medium text-gray-600 transition-all active:scale-95"
+                              >
+                                <Globe className="w-3 h-3 text-blue-500" />
+                                <span className="truncate max-w-[120px]">
+                                  {msg.groundingMetadata.groundingChunks[0]?.web?.uri?.replace('https://', '').replace('www.', '').split('/')[0]}
+                                </span>
+                                {msg.groundingMetadata.groundingChunks.length > 1 && (
+                                  <span className="text-gray-400">
+                                    {msg.groundingMetadata.groundingChunks.length - 1}+ {t('others')}
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Message Actions */}
+                        <div className="flex items-center gap-1 ml-1">
+                          <button className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all active:scale-90" title="Like">
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => setFeedbackMessageIdx(idx)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:scale-90" 
+                            title="Unlike"
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleCopy(msg.text)}
+                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all active:scale-90" 
+                            title="Copy"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleShare(msg.text)}
+                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all active:scale-90" 
+                            title="Share"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -735,6 +871,15 @@ export default function ZhiyouApp() {
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[160px]"
                         >
+                          <button 
+                            onClick={() => { setIsSearchEnabled(!isSearchEnabled); setIsAttachmentMenuOpen(false); }}
+                            className={`flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium transition-all text-left ${isSearchEnabled ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSearchEnabled ? 'bg-blue-100' : 'bg-gray-50'}`}>
+                              <Globe className={`w-4 h-4 ${isSearchEnabled ? 'text-blue-600' : 'text-gray-500'}`} />
+                            </div>
+                            {t('searchWeb')}
+                          </button>
                           <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
@@ -787,6 +932,96 @@ export default function ZhiyouApp() {
           </div>
         </div>
       </div>
+
+      {/* Sources Bottom Sheet */}
+      <AnimatePresence>
+        {showSources && (
+          <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-white rounded-t-3xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
+            >
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">{t('sources')}</h3>
+                <button onClick={() => setShowSources(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {showSources.groundingChunks?.map((chunk: any, i: number) => (
+                  <a 
+                    key={i} 
+                    href={chunk.web?.uri} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all group"
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold text-gray-900 truncate">{chunk.web?.title || 'Source'}</span>
+                      <span className="text-xs text-gray-500 truncate">{chunk.web?.uri}</span>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Feedback Popup */}
+      <AnimatePresence>
+        {feedbackMessageIdx !== null && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('feedbackTitle')}</h3>
+              <textarea 
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder={t('feedbackPlaceholder')}
+                className="w-full h-32 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none mb-4"
+              />
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setFeedbackMessageIdx(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  onClick={submitFeedback}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  {t('submit')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Copy Toast */}
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg flex items-center gap-2"
+          >
+            <Check className="w-4 h-4 text-green-400" />
+            {t('copySuccess')}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Logout Confirmation Dialog */}
       <AnimatePresence>

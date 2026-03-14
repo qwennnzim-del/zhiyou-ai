@@ -34,6 +34,14 @@ const translations = {
     addVideo: 'Video',
     addDoc: 'Dokumen',
     magicTool: 'Gunakan alat ajaib',
+    searchWeb: 'Cari di Web',
+    sources: 'Sumber',
+    others: 'lainnya',
+    copySuccess: 'Teks disalin!',
+    shareSuccess: 'Berhasil dibagikan!',
+    feedbackTitle: 'Kirim Masukan',
+    feedbackPlaceholder: 'Beritahu kami apa yang salah...',
+    submit: 'Kirim',
     disclaimer: 'Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.',
     language: 'Bahasa',
     selectLanguage: 'Pilih Bahasa',
@@ -68,6 +76,14 @@ const translations = {
     addVideo: 'Video',
     addDoc: 'Document',
     magicTool: 'Use magic tool',
+    searchWeb: 'Search Web',
+    sources: 'Sources',
+    others: 'others',
+    copySuccess: 'Text copied!',
+    shareSuccess: 'Shared successfully!',
+    feedbackTitle: 'Send Feedback',
+    feedbackPlaceholder: 'Tell us what went wrong...',
+    submit: 'Submit',
     disclaimer: 'Zhiyou AI can make mistakes. Please verify important info.',
     language: 'Language',
     selectLanguage: 'Select Language',
@@ -102,6 +118,14 @@ const translations = {
     addVideo: '動画',
     addDoc: 'ドキュメント',
     magicTool: '魔法のツールを使う',
+    searchWeb: 'ウェブ検索',
+    sources: 'ソース',
+    others: '他',
+    copySuccess: 'テキストをコピーしました！',
+    shareSuccess: '共有しました！',
+    feedbackTitle: 'フィードバックを送信',
+    feedbackPlaceholder: '何が問題だったか教えてください...',
+    submit: '送信',
     disclaimer: 'Zhiyou AIは間違いを犯す可能性があります。重要な情報は再確認してください。',
     language: '言語',
     selectLanguage: '言語を選択',
@@ -136,6 +160,14 @@ const translations = {
     addVideo: '비디오',
     addDoc: '문서',
     magicTool: '마법 도구 사용',
+    searchWeb: '웹 검색',
+    sources: '출처',
+    others: '기타',
+    copySuccess: '텍스트가 복사되었습니다!',
+    shareSuccess: '성공적으로 공유되었습니다!',
+    feedbackTitle: '피드백 보내기',
+    feedbackPlaceholder: '무엇이 잘못되었는지 알려주세요...',
+    submit: '제출',
     disclaimer: 'Zhiyou AI는 실수를 할 수 있습니다. 중요한 정보는 다시 확인해주세요.',
     language: '언어',
     selectLanguage: '언어 선택',
@@ -152,14 +184,13 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('id');
-
-  useEffect(() => {
-    const savedLang = localStorage.getItem('zhiyou_language') as Language;
-    if (savedLang && translations[savedLang]) {
-      setLanguageState(savedLang);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('zhiyou_language') as Language;
+      return (savedLang && translations[savedLang]) ? savedLang : 'id';
     }
-  }, []);
+    return 'id';
+  });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
