@@ -340,8 +340,22 @@ export default function ZhiyouApp() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="w-10 h-10 rounded-full border-4 border-blue-100 border-t-blue-500 animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center shadow-xl shadow-blue-500/20 mb-4"
+        >
+          <ZhiyouLogo className="w-10 h-10" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-xs font-semibold text-gray-400 tracking-widest uppercase"
+        >
+          Zhiyou AI
+        </motion.div>
       </div>
     );
   }
@@ -372,13 +386,13 @@ export default function ZhiyouApp() {
             className={`fixed md:static inset-y-0 left-0 w-72 bg-[#f9f9f9] border-r border-gray-200 z-50 flex flex-col ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}
           >
             <div className="p-4 flex items-center justify-between">
-              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors w-full">
+              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 active:scale-95 px-3 py-2 rounded-lg transition-all w-full">
                 <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                   <ZhiyouLogo className="w-4 h-4" />
                 </div>
                 <span className="font-medium">Chat Baru</span>
               </button>
-              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 rounded-full">
+              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -399,35 +413,41 @@ export default function ZhiyouApp() {
             <div className="flex-1 overflow-y-auto p-3">
               <div className="text-xs font-semibold text-gray-500 mb-2 px-3">Riwayat Chat</div>
               {chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
-                chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).map((chat) => (
-                  <div key={chat.id} className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}>
+                chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).map((chat, idx) => (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05, duration: 0.2 }}
+                    key={chat.id} 
+                    className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}
+                  >
                     <button 
                       onClick={() => loadChat(chat.id)}
-                      className="flex-1 text-left truncate pr-6"
+                      className="flex-1 text-left truncate pr-6 active:scale-[0.98] transition-transform"
                     >
                       {chat.title}
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setChatToDelete(chat.id); }}
-                      className="absolute right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                      className="absolute right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 active:scale-90 rounded-md opacity-0 group-hover:opacity-100 transition-all"
                       title="Hapus chat"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  </div>
+                  </motion.div>
                 ))
               ) : (
-                <div className="px-3 py-2 text-sm text-gray-400 italic">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-3 py-2 text-sm text-gray-400 italic">
                   {searchQuery ? 'Tidak ada hasil' : 'Belum ada riwayat'}
-                </div>
+                </motion.div>
               )}
             </div>
             
             <div className="p-4 border-t border-gray-200 space-y-1">
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700">
+              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
                 <Settings className="w-4 h-4" /> Pengaturan
               </button>
-              <Link href="/help" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 text-sm text-gray-700 transition-colors">
+              <Link href="/help" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
                 <HelpCircle className="w-4 h-4" /> Bantuan
               </Link>
             </div>
@@ -439,12 +459,12 @@ export default function ZhiyouApp() {
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         {/* Top Bar */}
         <header className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4 bg-white/80 backdrop-blur-md z-10">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors md:hidden">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-gray-100 active:scale-90 rounded-full transition-all md:hidden">
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
           
           <div className="flex-1 flex justify-center md:justify-start md:ml-4">
-            <button className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 rounded-full text-sm font-medium transition-colors border border-gray-200">
+            <button className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 active:scale-95 rounded-full text-sm font-medium transition-all border border-gray-200">
               <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
@@ -458,13 +478,13 @@ export default function ZhiyouApp() {
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-medium text-gray-900">{user.displayName || 'User'}</span>
               </div>
-              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200" />
-              <button onClick={handleLogout} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Logout">
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} alt="Profile" className="w-8 h-8 rounded-full border border-gray-200 hover:scale-105 transition-transform cursor-pointer" />
+              <button onClick={handleLogout} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 active:scale-90 rounded-full transition-all" title="Logout">
                 <LogIn className="w-5 h-5 rotate-180" />
               </button>
             </div>
           ) : (
-            <Link href="/login" className="flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-sm font-medium text-gray-900 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 hover:opacity-90 transition-opacity">
+            <Link href="/login" className="flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-sm font-medium text-gray-900 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 hover:opacity-90 active:scale-95 transition-all">
               <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
                 <span className="text-[12px] font-bold text-blue-600">G</span>
               </div>
@@ -477,22 +497,43 @@ export default function ZhiyouApp() {
         <main className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full px-4 -mt-10">
-              <div className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/10">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
+                className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/10"
+              >
                 <ZhiyouLogo className="w-10 h-10" />
-              </div>
+              </motion.div>
               
-              <h1 className="text-4xl sm:text-5xl font-semibold mb-4 text-center tracking-tight">
+              <motion.h1 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="text-4xl sm:text-5xl font-semibold mb-4 text-center tracking-tight"
+              >
                 Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">{user?.displayName?.split(' ')[0] || 'User'}</span>
-              </h1>
+              </motion.h1>
               
-              <p className="text-gray-500 text-lg sm:text-xl text-center max-w-md">
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="text-gray-500 text-lg sm:text-xl text-center max-w-md"
+              >
                 I'm Zhiyou AI. How can I help you today?
-              </p>
+              </motion.p>
             </div>
           ) : (
             <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-8">
               {messages.map((msg, idx) => (
-                <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
                   {msg.role === 'model' && (
                     <div className="relative w-8 h-8 flex-shrink-0 mt-1 flex items-center justify-center">
                       <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
@@ -555,7 +596,7 @@ export default function ZhiyouApp() {
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
               <div ref={messagesEndRef} />
             </div>
@@ -629,7 +670,7 @@ export default function ZhiyouApp() {
                   <div className="flex items-center gap-1 relative" ref={attachmentMenuRef}>
                     <button 
                       onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                      className={`p-2 rounded-full transition-colors text-gray-500 ${isAttachmentMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80'}`} 
+                      className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80 text-gray-500'}`} 
                       title="Tambahkan file"
                     >
                       <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachmentMenuOpen ? 'rotate-45' : ''}`} />
@@ -645,19 +686,19 @@ export default function ZhiyouApp() {
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[160px]"
                         >
-                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 rounded-xl text-sm font-medium text-gray-700 transition-colors text-left">
+                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
                             </div>
                             Gambar
                           </button>
-                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 rounded-xl text-sm font-medium text-gray-700 transition-colors text-left">
+                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                               <Video className="w-4 h-4 text-purple-500" />
                             </div>
                             Video
                           </button>
-                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 rounded-xl text-sm font-medium text-gray-700 transition-colors text-left">
+                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
                               <FileText className="w-4 h-4 text-orange-500" />
                             </div>
@@ -667,7 +708,7 @@ export default function ZhiyouApp() {
                       )}
                     </AnimatePresence>
 
-                    <button className="p-2 hover:bg-gray-200/80 rounded-full transition-colors text-gray-500" title="Gunakan alat ajaib">
+                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title="Gunakan alat ajaib">
                       <Wand2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -675,7 +716,7 @@ export default function ZhiyouApp() {
                   <button 
                     onClick={handleSend}
                     disabled={(!input.trim() && attachments.length === 0) || isLoading}
-                    className="p-2 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:hover:bg-gray-200 rounded-full transition-colors text-gray-700"
+                    className="p-2 bg-gray-200 hover:bg-gray-300 active:scale-90 disabled:opacity-50 disabled:hover:bg-gray-200 disabled:active:scale-100 rounded-full transition-all text-gray-700"
                   >
                     <ArrowUp className="w-5 h-5" />
                   </button>

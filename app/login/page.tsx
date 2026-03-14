@@ -54,8 +54,22 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center shadow-xl shadow-blue-500/20 mb-4"
+        >
+          <ZhiyouLogo className="w-10 h-10" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-xs font-semibold text-gray-400 tracking-widest uppercase"
+        >
+          Zhiyou AI
+        </motion.div>
       </div>
     );
   }
@@ -123,7 +137,7 @@ export default function LoginPage() {
 
           <button 
             onClick={() => alert("Login dengan email belum diimplementasikan.")}
-            className="w-full py-4 bg-black text-white font-semibold rounded-full hover:bg-gray-800 transition-colors mb-8"
+            className="w-full py-4 bg-black text-white font-semibold rounded-full hover:bg-gray-800 active:scale-[0.98] transition-all mb-8"
           >
             Login
           </button>
@@ -138,7 +152,7 @@ export default function LoginPage() {
           <div className="space-y-3 mb-8">
             <button 
               onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-full transition-all"
+              className="w-full flex items-center justify-center gap-3 py-3.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-full active:scale-[0.98] transition-all"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
