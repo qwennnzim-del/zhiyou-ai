@@ -27,15 +27,18 @@ type Message = {
 const ZhiyouLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <defs>
-      <linearGradient id="z-grad" x1="8" y1="10" x2="24" y2="28" gradientUnits="userSpaceOnUse">
+      <linearGradient id="z-grad" x1="5" y1="7" x2="27" y2="25" gradientUnits="userSpaceOnUse">
         <stop stopColor="#4ade80" />
         <stop offset="1" stopColor="#3b82f6" />
       </linearGradient>
     </defs>
-    {/* Sharp diagonal shadow between the sides */}
-    <path d="M 22 12 L 10 22" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
-    {/* Main Z with bent ends */}
-    <path d="M 8 15 L 8 10 L 24 10 L 8 24 L 24 24 L 24 29" stroke="url(#z-grad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <path 
+      d="M 11 7 L 27 7 L 23 13 L 21 13 L 17 19 L 25 19 L 21 25 L 5 25 L 9 19 L 11 19 L 15 13 L 7 13 Z" 
+      fill="url(#z-grad)" 
+      stroke="url(#z-grad)" 
+      strokeWidth="1.5" 
+      strokeLinejoin="round" 
+    />
   </svg>
 );
 
@@ -266,7 +269,7 @@ export default function ZhiyouApp() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         {/* Top Bar */}
-        <header className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4 bg-white/80 backdrop-blur-md z-10 border-b border-gray-100">
+        <header className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4 bg-white/80 backdrop-blur-md z-10">
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors md:hidden">
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
