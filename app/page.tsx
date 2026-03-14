@@ -205,7 +205,7 @@ export default function ZhiyouApp() {
   };
 
   return (
-    <div className="flex h-screen bg-white text-gray-900 font-sans overflow-hidden">
+    <div className="flex h-[100dvh] bg-white text-gray-900 font-sans overflow-hidden">
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -266,7 +266,7 @@ export default function ZhiyouApp() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         {/* Top Bar */}
-        <header className="flex items-center justify-between p-3 sm:p-4 sticky top-0 bg-white/80 backdrop-blur-md z-10">
+        <header className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4 bg-white/80 backdrop-blur-md z-10 border-b border-gray-100">
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors md:hidden">
             <Menu className="w-6 h-6 text-gray-600" />
           </button>
@@ -290,7 +290,7 @@ export default function ZhiyouApp() {
         </header>
 
         {/* Chat Area */}
-        <main className="flex-1 overflow-y-auto pb-40">
+        <main className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full px-4 -mt-10">
               <div className="w-16 h-16 rounded-3xl bg-white border border-gray-100 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/10">
@@ -379,7 +379,7 @@ export default function ZhiyouApp() {
         </main>
 
         {/* Input Area */}
-        <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-white via-white to-transparent pt-10 pb-4 px-4">
+        <div className="flex-shrink-0 bg-white px-4 pb-4 pt-2 w-full">
           <div className="max-w-3xl mx-auto w-full">
             <div className="relative group rounded-3xl z-10">
               {/* Glow Effect */}
