@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen } from 'lucide-react';
+import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen, Search, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -9,7 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import Link from 'next/link';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
@@ -68,6 +68,9 @@ export default function ZhiyouApp() {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<any>(null);
@@ -134,12 +137,30 @@ export default function ZhiyouApp() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
     try {
       await signOut(auth);
       router.push('/login');
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+
+  const confirmDeleteChat = async () => {
+    if (!user || !chatToDelete) return;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'chats', chatToDelete));
+      if (chatId === chatToDelete) {
+        setChatId(null);
+        setMessages([]);
+      }
+      setChatToDelete(null);
+    } catch (error) {
+      console.error("Error deleting chat:", error);
     }
   };
 
@@ -362,20 +383,43 @@ export default function ZhiyouApp() {
               </button>
             </div>
             
+            <div className="px-4 pb-2">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Cari riwayat..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+              </div>
+            </div>
+            
             <div className="flex-1 overflow-y-auto p-3">
               <div className="text-xs font-semibold text-gray-500 mb-2 px-3">Riwayat Chat</div>
-              {chatHistory.length > 0 ? (
-                chatHistory.map((chat) => (
-                  <button 
-                    key={chat.id}
-                    onClick={() => loadChat(chat.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm truncate transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}
-                  >
-                    {chat.title}
-                  </button>
+              {chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                chatHistory.filter(chat => chat.title?.toLowerCase().includes(searchQuery.toLowerCase())).map((chat) => (
+                  <div key={chat.id} className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}>
+                    <button 
+                      onClick={() => loadChat(chat.id)}
+                      className="flex-1 text-left truncate pr-6"
+                    >
+                      {chat.title}
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setChatToDelete(chat.id); }}
+                      className="absolute right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                      title="Hapus chat"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))
               ) : (
-                <div className="px-3 py-2 text-sm text-gray-400 italic">Belum ada riwayat</div>
+                <div className="px-3 py-2 text-sm text-gray-400 italic">
+                  {searchQuery ? 'Tidak ada hasil' : 'Belum ada riwayat'}
+                </div>
               )}
             </div>
             
@@ -653,6 +697,68 @@ export default function ZhiyouApp() {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Keluar dari Zhiyou?</h3>
+              <p className="text-gray-500 text-sm mb-6">Anda harus login kembali untuk mengakses riwayat chat Anda.</p>
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={confirmLogout}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                >
+                  Ya, Keluar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Chat Confirmation Dialog */}
+      <AnimatePresence>
+        {chatToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Hapus riwayat chat?</h3>
+              <p className="text-gray-500 text-sm mb-6">Chat ini akan dihapus secara permanen dan tidak dapat dikembalikan.</p>
+              <div className="flex gap-3 justify-end">
+                <button 
+                  onClick={() => setChatToDelete(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={confirmDeleteChat}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                >
+                  Hapus
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
