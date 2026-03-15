@@ -75,6 +75,7 @@ export default function ZhiyouApp() {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export default function ZhiyouApp() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
+  const featureMenuRef = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -140,6 +142,9 @@ export default function ZhiyouApp() {
     const handleClickOutside = (event: MouseEvent) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node)) {
         setIsAttachmentMenuOpen(false);
+      }
+      if (featureMenuRef.current && !featureMenuRef.current.contains(event.target as Node)) {
+        setIsFeatureMenuOpen(false);
       }
       if (modelMenuRef.current && !modelMenuRef.current.contains(event.target as Node)) {
         setIsModelMenuOpen(false);
@@ -618,7 +623,7 @@ export default function ZhiyouApp() {
               <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
-              {selectedModel === 'gemini-2.5-flash' ? 'Zhiyou 2.5' : 'Zhiyou 3'}
+              {selectedModel === 'gemini-2.5-flash' ? t('modelZhiyou25') : t('modelZhiyou3')}
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             
@@ -906,7 +911,7 @@ export default function ZhiyouApp() {
                     <button 
                       onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
                       className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80 text-gray-500'}`} 
-                      title="Tambahkan file"
+                      title={t('addFile')}
                     >
                       <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachmentMenuOpen ? 'rotate-45' : ''}`} />
                     </button>
@@ -914,7 +919,7 @@ export default function ZhiyouApp() {
                     <button 
                       onClick={() => setIsSearchEnabled(!isSearchEnabled)}
                       className={`p-2 rounded-full transition-all active:scale-90 ${isSearchEnabled ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-200/80 text-gray-500'}`} 
-                      title="Search Web"
+                      title={t('searchWeb')}
                     >
                       <Globe className="w-5 h-5" />
                     </button>
@@ -951,9 +956,46 @@ export default function ZhiyouApp() {
                       )}
                     </AnimatePresence>
 
-                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
-                      <Wand2 className="w-5 h-5" />
-                    </button>
+                    <div className="relative" ref={featureMenuRef}>
+                      <button 
+                        onClick={() => setIsFeatureMenuOpen(!isFeatureMenuOpen)}
+                        className={`p-2 rounded-full transition-all active:scale-90 ${isFeatureMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80 text-gray-500'}`} 
+                        title={t('magicTool')}
+                      >
+                        <Wand2 className="w-5 h-5" />
+                      </button>
+
+                      <AnimatePresence>
+                        {isFeatureMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[200px]"
+                          >
+                            <button onClick={() => { alert(t('featureComingSoon')); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                              <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
+                                <ImageIcon className="w-4 h-4 text-pink-500" />
+                              </div>
+                              {t('featureGenerateImage')}
+                            </button>
+                            <button onClick={() => { alert(t('featureComingSoon')); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                <Search className="w-4 h-4 text-indigo-500" />
+                              </div>
+                              {t('featureDeepResearch')}
+                            </button>
+                            <button onClick={() => { alert(t('featureComingSoon')); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                <BookOpen className="w-4 h-4 text-emerald-500" />
+                              </div>
+                              {t('featureGuidedLearning')}
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                   
                   <button 

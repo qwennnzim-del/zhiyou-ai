@@ -11,6 +11,7 @@ const languages = [
   { code: 'en', name: 'English' },
   { code: 'ja', name: '日本語 (Japanese)' },
   { code: 'ko', name: '한국어 (Korean)' },
+  { code: 'zh', name: '中文 (Simplified Chinese)' },
 ];
 
 export default function SettingsPage() {

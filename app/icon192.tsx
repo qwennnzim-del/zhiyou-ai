@@ -2,10 +2,10 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-export const size = { width: 512, height: 512 }
+export const size = { width: 192, height: 192 }
 export const contentType = 'image/png'
 
-export default function Icon() {
+export default function Icon192() {
   return new ImageResponse(
     (
       <div
@@ -19,7 +19,7 @@ export default function Icon() {
           borderRadius: '20%',
         }}
       >
-        <svg viewBox="0 0 32 32" width="300" height="300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 32 32" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path 
             d="M 11 7 L 27 7 L 23 13 L 21 13 L 17 19 L 25 19 L 21 25 L 5 25 L 9 19 L 11 19 L 15 13 L 7 13 Z" 
             fill="white" 
