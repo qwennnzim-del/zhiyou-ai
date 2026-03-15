@@ -502,13 +502,13 @@ export default function ZhiyouApp() {
             className={`fixed md:static inset-y-0 left-0 w-72 bg-[#f9f9f9] border-r border-gray-200 z-50 flex flex-col ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}
           >
             <div className="p-4 flex items-center justify-between">
-              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 active:scale-95 px-3 py-2 rounded-lg transition-all w-full">
-                <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
-                  <ZhiyouLogo className="w-4 h-4" />
+              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 border border-gray-200 hover:border-blue-200 active:scale-95 px-3 py-2.5 rounded-xl transition-all w-full shadow-sm group">
+                <div className="w-6 h-6 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 group-hover:border-blue-100 flex items-center justify-center shadow-sm transition-colors">
+                  <Plus className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
                 </div>
-                <span className="font-medium">{t('newChat')}</span>
+                <span className="font-semibold text-sm">{t('newChat')}</span>
               </button>
-              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all">
+              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all ml-2">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -535,7 +535,7 @@ export default function ZhiyouApp() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05, duration: 0.2 }}
                     key={chat.id} 
-                    className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}
+                    className={`group relative w-full flex items-center px-3 py-2.5 rounded-xl text-sm transition-all mb-1 ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-semibold shadow-sm border border-blue-100' : 'hover:bg-gray-200/70 text-gray-700 border border-transparent hover:border-gray-300/50'}`}
                   >
                     <button 
                       onClick={() => loadChat(chat.id)}
@@ -582,13 +582,13 @@ export default function ZhiyouApp() {
           <div className="flex-1 flex justify-center md:justify-start md:ml-4 relative" ref={modelMenuRef}>
             <button 
               onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 active:scale-95 rounded-full text-sm font-medium transition-all border border-gray-200"
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-blue-50 active:scale-95 rounded-full text-sm font-semibold transition-all border border-gray-200 hover:border-blue-200 hover:text-blue-600 shadow-sm"
             >
-              <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+              <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
               {selectedModel === 'gemini-2.5-flash' ? 'Zhiyou 2.5' : 'Zhiyou 3'}
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isModelMenuOpen ? 'rotate-180 text-blue-500' : ''}`} />
             </button>
             
             <AnimatePresence>
@@ -680,27 +680,17 @@ export default function ZhiyouApp() {
                 >
                   {msg.role === 'model' && (
                     <div className="relative w-8 h-8 flex-shrink-0 mt-1 flex items-center justify-center">
-                      <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+                      <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
                         <div 
-                          className={`absolute inset-0 rounded-full animate-border-spin transition-opacity duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-100' : 'opacity-0'}`}
-                          style={{ backgroundImage: 'conic-gradient(from var(--angle), transparent 60%, #3b82f6, #8b5cf6, #ec4899)' }}
-                        ></div>
-                        <div 
-                          className={`absolute inset-0 rounded-full animate-border-spin transition-opacity duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-0' : 'opacity-100'}`}
-                          style={{ backgroundImage: 'conic-gradient(from var(--angle), #3b82f6, #8b5cf6, #ec4899, #f43f5e, #f59e0b, #3b82f6)' }}
+                          className={`absolute inset-0 rounded-full animate-border-spin transition-all duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-100 scale-110' : 'opacity-100 scale-100'}`}
+                          style={{ 
+                            backgroundImage: (isThinking && idx === messages.length - 1) 
+                              ? 'conic-gradient(from var(--angle), transparent 40%, #3b82f6, #8b5cf6, #ec4899)' 
+                              : 'conic-gradient(from var(--angle), #4ade80, #3b82f6, #8b5cf6, #4ade80)' 
+                          }}
                         ></div>
                         <div className="absolute inset-[2px] bg-white rounded-full z-10 flex items-center justify-center">
-                          <AnimatePresence>
-                            {!(isThinking && idx === messages.length - 1) && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-                              >
-                                <ZhiyouLogo className="w-5 h-5" />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                          <ZhiyouLogo className="w-5 h-5" />
                         </div>
                       </div>
                     </div>
@@ -823,27 +813,27 @@ export default function ZhiyouApp() {
                           )}
 
                         {/* Message Actions */}
-                        <div className="flex items-center gap-1 ml-1">
-                          <button className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all active:scale-90" title="Like">
+                        <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-300">
+                          <button className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all active:scale-90" title="Like">
                             <ThumbsUp className="w-3.5 h-3.5" />
                           </button>
                           <button 
                             onClick={() => setFeedbackMessageIdx(idx)}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:scale-90" 
+                            className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all active:scale-90" 
                             title="Unlike"
                           >
                             <ThumbsDown className="w-3.5 h-3.5" />
                           </button>
                           <button 
                             onClick={() => handleCopy(msg.text)}
-                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all active:scale-90" 
+                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all active:scale-90" 
                             title="Copy"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
                           <button 
                             onClick={() => handleShare(msg.text)}
-                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all active:scale-90" 
+                            className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all active:scale-90" 
                             title="Share"
                           >
                             <Share2 className="w-3.5 h-3.5" />
@@ -926,7 +916,7 @@ export default function ZhiyouApp() {
                   <div className="flex items-center gap-1 relative" ref={attachmentMenuRef}>
                     <button 
                       onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                      className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80 text-gray-500'}`} 
+                      className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-blue-100 text-blue-600' : 'hover:bg-blue-50 text-gray-500 hover:text-blue-600'}`} 
                       title="Tambahkan file"
                     >
                       <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachmentMenuOpen ? 'rotate-45' : ''}`} />
@@ -942,19 +932,19 @@ export default function ZhiyouApp() {
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[160px]"
                         >
-                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
                             </div>
                             {t('addImage')}
                           </button>
-                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-purple-50 hover:text-purple-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                               <Video className="w-4 h-4 text-purple-500" />
                             </div>
                             {t('addVideo')}
                           </button>
-                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50 hover:text-orange-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
                               <FileText className="w-4 h-4 text-orange-500" />
                             </div>
@@ -966,14 +956,14 @@ export default function ZhiyouApp() {
 
                     <button 
                       onClick={() => setIsSearchEnabled(!isSearchEnabled)}
-                      className={`p-2 rounded-full transition-all active:scale-90 relative ${isSearchEnabled ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-200/80 text-gray-500'}`} 
+                      className={`p-2 rounded-full transition-all active:scale-90 relative ${isSearchEnabled ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-500 hover:text-blue-600'}`} 
                       title={t('searchWeb')}
                     >
                       <Pencil className="w-5 h-5" />
-                      <Sparkles className={`w-3 h-3 absolute -top-0.5 -right-0.5 transition-transform duration-500 ${isSearchEnabled ? 'scale-110 rotate-12 text-blue-500' : 'scale-75 opacity-50'}`} />
+                      <Sparkles className={`w-3 h-3 absolute -top-0.5 -right-0.5 transition-transform duration-500 ${isSearchEnabled ? 'scale-110 rotate-12 text-yellow-300' : 'scale-75 opacity-50'}`} />
                     </button>
 
-                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
+                    <button className="p-2 hover:bg-emerald-50 hover:text-emerald-600 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
                       <Wand2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -981,7 +971,7 @@ export default function ZhiyouApp() {
                   <button 
                     onClick={() => handleSend()}
                     disabled={(!input.trim() && attachments.length === 0) || isLoading}
-                    className="p-2 bg-gray-200 hover:bg-gray-300 active:scale-90 disabled:opacity-50 disabled:hover:bg-gray-200 disabled:active:scale-100 rounded-full transition-all text-gray-700"
+                    className="p-2 bg-blue-600 hover:bg-blue-700 active:scale-90 disabled:opacity-50 disabled:hover:bg-blue-600 disabled:active:scale-100 rounded-full transition-all text-white shadow-lg shadow-blue-200"
                   >
                     <ArrowUp className="w-5 h-5" />
                   </button>
