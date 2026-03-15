@@ -82,6 +82,8 @@ export default function ZhiyouApp() {
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+  const [featureMode, setFeatureMode] = useState<'chat' | 'image' | 'research' | 'learning'>('chat');
+  const [aspectRatio, setAspectRatio] = useState('1:1');
   const [showSourcesFor, setShowSourcesFor] = useState<Source[] | null>(null);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const [likedMessageIndex, setLikedMessageIndex] = useState<number | null>(null);
@@ -403,45 +405,84 @@ export default function ZhiyouApp() {
         config.tools = [{ googleSearch: {} }];
       }
 
-      const responseStream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
-        contents: contents,
-        config: config
-      });
-      
-      let firstChunk = true;
       let fullText = '';
       let sources: Source[] = [];
-      
-      for await (const chunk of responseStream) {
-        if (firstChunk) {
-          setIsThinking(false);
-          firstChunk = false;
-        }
-        
-        const c = chunk as any;
-        if (c.text) {
-          fullText += c.text;
-        }
-        
-        const chunks = c.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        if (chunks) {
-          chunks.forEach((gc: any) => {
-            if (gc.web?.uri && gc.web?.title) {
-              // Avoid duplicates
-              if (!sources.find(s => s.uri === gc.web.uri)) {
-                sources.push({ uri: gc.web.uri, title: gc.web.title });
-              }
+
+      if (featureMode === 'image') {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              { text: userText }
+            ]
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio
             }
-          });
+          }
+        });
+
+        setIsThinking(false);
+        
+        let imageUrl = '';
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData) {
+            imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+        
+        if (imageUrl) {
+          fullText = `![Generated Image](${imageUrl})`;
+        } else {
+          fullText = "Maaf, gagal membuat gambar.";
         }
 
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].text = fullText;
-          newMessages[newMessages.length - 1].sources = sources;
           return newMessages;
         });
+      } else {
+        const responseStream = await ai.models.generateContentStream({
+          model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
+          contents: contents,
+          config: config
+        });
+        
+        let firstChunk = true;
+        
+        for await (const chunk of responseStream) {
+          if (firstChunk) {
+            setIsThinking(false);
+            firstChunk = false;
+          }
+          
+          const c = chunk as any;
+          if (c.text) {
+            fullText += c.text;
+          }
+          
+          const chunks = c.candidates?.[0]?.groundingMetadata?.groundingChunks;
+          if (chunks) {
+            chunks.forEach((gc: any) => {
+              if (gc.web?.uri && gc.web?.title) {
+                // Avoid duplicates
+                if (!sources.find(s => s.uri === gc.web.uri)) {
+                  sources.push({ uri: gc.web.uri, title: gc.web.title });
+                }
+              }
+            });
+          }
+
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].text = fullText;
+            newMessages[newMessages.length - 1].sources = sources;
+            return newMessages;
+          });
+        }
       }
 
       if (user) {
@@ -891,6 +932,37 @@ export default function ZhiyouApp() {
                   </div>
                 )}
 
+                {featureMode !== 'chat' && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100">
+                      {featureMode === 'image' && <ImageIcon className="w-3.5 h-3.5" />}
+                      {featureMode === 'research' && <Search className="w-3.5 h-3.5" />}
+                      {featureMode === 'learning' && <BookOpen className="w-3.5 h-3.5" />}
+                      <span>
+                        {featureMode === 'image' && t('featureGenerateImage')}
+                        {featureMode === 'research' && t('featureDeepResearch')}
+                        {featureMode === 'learning' && t('featureGuidedLearning')}
+                      </span>
+                      <button onClick={() => setFeatureMode('chat')} className="ml-1 p-0.5 hover:bg-blue-200 rounded-full transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {featureMode === 'image' && (
+                      <select 
+                        value={aspectRatio}
+                        onChange={(e) => setAspectRatio(e.target.value)}
+                        className="text-xs font-medium bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700 outline-none focus:border-blue-300"
+                      >
+                        <option value="1:1">1:1 Square</option>
+                        <option value="16:9">16:9 Landscape</option>
+                        <option value="9:16">9:16 Portrait</option>
+                        <option value="4:3">4:3 Standard</option>
+                        <option value="3:4">3:4 Vertical</option>
+                      </select>
+                    )}
+                  </div>
+                )}
+
                 <textarea
                   ref={textareaRef}
                   value={input}
@@ -901,7 +973,7 @@ export default function ZhiyouApp() {
                       handleSend();
                     }
                   }}
-                  placeholder={t('askAnything')}
+                  placeholder={featureMode === 'image' ? t('describeImage') : t('askAnything')}
                   className={`w-full bg-transparent resize-none outline-none max-h-48 min-h-[40px] text-gray-800 placeholder:text-gray-500 text-base transition-opacity duration-300 ${input.length > 0 ? 'opacity-100' : 'opacity-70'}`}
                   rows={1}
                 />
@@ -974,7 +1046,7 @@ export default function ZhiyouApp() {
                             transition={{ duration: 0.15 }}
                             className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[200px]"
                           >
-                            <button onClick={() => { alert(t('featureComingSoon')); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                            <button onClick={() => { setFeatureMode('image'); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                               <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
                                 <ImageIcon className="w-4 h-4 text-pink-500" />
                               </div>
