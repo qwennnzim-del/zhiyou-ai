@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'M Fariz Alfauzi', url: 'https://zent.technology' }],
   creator: 'M Fariz Alfauzi',
   publisher: 'Zent Technology GH',
-  metadataBase: new URL('https://ais-pre-q52xbbhqheaysryy45fgkk-108471728467.asia-east1.run.app'),
+  metadataBase: new URL('https://zhiyou-ai.vercel.app/'),
   alternates: {
     canonical: '/',
   },
@@ -55,7 +55,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Zhiyou AI",
-              "url": "https://ais-pre-q52xbbhqheaysryy45fgkk-108471728467.asia-east1.run.app",
+              "url": "https://zhiyou-ai.vercel.app/",
               "description": "Zhiyou AI adalah asisten kecerdasan buatan canggih yang didirikan oleh M Fariz Alfauzi (AI Engineer) dan dikembangkan di Zent Technology GH.",
               "founder": {
                 "@type": "Person",

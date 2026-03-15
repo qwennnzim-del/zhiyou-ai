@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
  
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://ais-pre-q52xbbhqheaysryy45fgkk-108471728467.asia-east1.run.app'
+  const baseUrl = 'https://zhiyou-ai.vercel.app'
 
   return {
     rules: {
