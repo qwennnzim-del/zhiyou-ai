@@ -1,6 +1,14 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css'; // Global styles
 import { Providers } from './providers';
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: 'Zhiyou AI | Developed by M Fariz Alfauzi at Zent Technology GH',
@@ -19,6 +27,14 @@ export const metadata: Metadata = {
     siteName: 'Zhiyou AI',
     locale: 'id_ID',
     type: 'website',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Zhiyou AI',
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
