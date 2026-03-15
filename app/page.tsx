@@ -643,6 +643,9 @@ export default function ZhiyouApp() {
               <Link href="/settings" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
                 <Settings className="w-4 h-4" /> {t('settings')}
               </Link>
+              <Link href="/about" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
+                <BookOpen className="w-4 h-4" /> Tentang
+              </Link>
               <Link href="/help" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-200 active:scale-[0.98] transition-all text-sm text-gray-700">
                 <HelpCircle className="w-4 h-4" /> {t('help')}
               </Link>
