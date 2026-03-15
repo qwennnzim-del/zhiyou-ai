@@ -49,6 +49,27 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <head>
         <meta name="google-site-verification" content="U1n-y8RlFf7-B3gJQgjQpM1v4HOPrBhhoXKxGjI86pA" />
         <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Zhiyou AI",
+              "url": "https://ais-pre-q52xbbhqheaysryy45fgkk-108471728467.asia-east1.run.app",
+              "description": "Zhiyou AI adalah asisten kecerdasan buatan canggih yang didirikan oleh M Fariz Alfauzi (AI Engineer) dan dikembangkan di Zent Technology GH.",
+              "founder": {
+                "@type": "Person",
+                "name": "M Fariz Alfauzi",
+                "jobTitle": "AI Engineer",
+                "worksFor": {
+                  "@type": "Organization",
+                  "name": "Zent Technology GH"
+                }
+              }
+            }),
+          }}
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
