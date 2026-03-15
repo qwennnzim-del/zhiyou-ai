@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   authors: [{ name: 'M Fariz Alfauzi', url: 'https://zent.technology' }],
   creator: 'M Fariz Alfauzi',
   publisher: 'Zent Technology GH',
+  metadataBase: new URL('https://ais-pre-q52xbbhqheaysryy45fgkk-108471728467.asia-east1.run.app'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     title: 'Zhiyou AI - Smart Assistant by M Fariz Alfauzi',
     description: 'Zhiyou AI adalah asisten kecerdasan buatan canggih yang didirikan oleh M Fariz Alfauzi (AI Engineer) dan dikembangkan di Zent Technology GH, Karawang, Central Jawa Barat.',

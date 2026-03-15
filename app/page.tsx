@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen, Search, Trash2 } from 'lucide-react';
+import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen, Search, Trash2, Globe, ThumbsUp, Copy, Check, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -24,10 +24,16 @@ type Attachment = {
   previewUrl?: string;
 };
 
+type Source = {
+  title: string;
+  uri: string;
+};
+
 type Message = {
   role: 'user' | 'model';
   text: string;
   attachments?: Attachment[];
+  sources?: Source[];
 };
 
 type Chat = {
@@ -74,6 +80,12 @@ export default function ZhiyouApp() {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+  const [showSourcesFor, setShowSourcesFor] = useState<Source[] | null>(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [likedMessageIndex, setLikedMessageIndex] = useState<number | null>(null);
+  const [sharedMessageIndex, setSharedMessageIndex] = useState<number | null>(null);
+  const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const { t, language } = useLanguage();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -83,6 +95,46 @@ export default function ZhiyouApp() {
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const thinkingTexts = ["thinking...", "processing...", "analyzing..."];
+  const searchingTexts = ["searching...", "browsing the web...", "finding sources..."];
+
+  useEffect(() => {
+    if (isThinking) {
+      const interval = setInterval(() => {
+        setLoadingTextIndex(prev => (prev + 1) % 3);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isThinking]);
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageIndex(index);
+    setTimeout(() => setCopiedMessageIndex(null), 2000);
+  };
+
+  const handleLike = (index: number) => {
+    setLikedMessageIndex(index);
+    setTimeout(() => setLikedMessageIndex(null), 2000);
+  };
+
+  const handleShare = async (text: string, index: number) => {
+    setSharedMessageIndex(index);
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Zhiyou AI Response',
+          text: text,
+        });
+      } else {
+        navigator.clipboard.writeText(text);
+      }
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
+    setTimeout(() => setSharedMessageIndex(null), 2000);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -281,13 +333,14 @@ export default function ZhiyouApp() {
     setMessages(prev => [...prev, { role: 'user', text: userText, attachments: currentAttachments }]);
     setIsLoading(true);
     setIsThinking(true);
+    setLoadingTextIndex(0);
     
     // Add empty model message immediately so loader shows up
-    setMessages(prev => [...prev, { role: 'model', text: '' }]);
+    setMessages(prev => [...prev, { role: 'model', text: '', sources: [] }]);
     
     try {
       const messageParts: any[] = [];
-      if (userText) messageParts.push(userText);
+      if (userText) messageParts.push({ text: userText });
       currentAttachments.forEach(att => {
         messageParts.push({
           inlineData: {
@@ -297,19 +350,77 @@ export default function ZhiyouApp() {
         });
       });
 
-      const responseStream = await chatRef.current.sendMessageStream({ message: messageParts });
+      // Build contents from history
+      const contents = messages.map(m => {
+        const parts: any[] = [];
+        if (m.text) parts.push({ text: m.text });
+        if (m.attachments) {
+          m.attachments.forEach(att => {
+            parts.push({
+              inlineData: {
+                data: att.base64,
+                mimeType: att.mimeType
+              }
+            });
+          });
+        }
+        // Ensure parts is not empty
+        if (parts.length === 0) parts.push({ text: '' });
+        return { role: m.role, parts };
+      });
+      
+      contents.push({ role: 'user', parts: messageParts });
+
+      let systemInstruction = t('systemPromptBase') + '\n\n' + t('systemPromptLang');
+      if (selectedModel === 'zhiyou-3') {
+        systemInstruction += '\n\n[MODE PENALARAN TINGGI AKTIF]: ' + t('systemPromptReasoning');
+      }
+
+      const config: any = {
+        systemInstruction: systemInstruction,
+      };
+
+      if (isSearchEnabled) {
+        config.tools = [{ googleSearch: {} }];
+      }
+
+      const responseStream = await ai.models.generateContentStream({
+        model: selectedModel === 'zhiyou-3' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
+        contents: contents,
+        config: config
+      });
       
       let firstChunk = true;
       let fullText = '';
+      let sources: Source[] = [];
+      
       for await (const chunk of responseStream) {
         if (firstChunk) {
           setIsThinking(false);
           firstChunk = false;
         }
-        fullText += chunk.text;
+        
+        const c = chunk as any;
+        if (c.text) {
+          fullText += c.text;
+        }
+        
+        const chunks = c.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks) {
+          chunks.forEach((gc: any) => {
+            if (gc.web?.uri && gc.web?.title) {
+              // Avoid duplicates
+              if (!sources.find(s => s.uri === gc.web.uri)) {
+                sources.push({ uri: gc.web.uri, title: gc.web.title });
+              }
+            }
+          });
+        }
+
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].text = fullText;
+          newMessages[newMessages.length - 1].sources = sources;
           return newMessages;
         });
       }
@@ -331,7 +442,8 @@ export default function ZhiyouApp() {
                 mimeType: a.mimeType,
                 name: a.name,
                 size: a.size
-              })) || []
+              })) || [],
+              sources: m.sources || []
             }));
             
             setDoc(chatRef, {
@@ -639,9 +751,69 @@ export default function ZhiyouApp() {
                       </div>
                     ) : (
                       <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {msg.text || '...'}
-                        </ReactMarkdown>
+                        {isThinking && idx === messages.length - 1 && !msg.text ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="relative overflow-hidden rounded-full px-4 py-1.5 bg-gray-100/80 border border-gray-200/50 shadow-sm">
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-rtl"></div>
+                              {isSearchEnabled ? (
+                                <span className="relative z-10 font-medium text-sm tracking-wide bg-google-gradient drop-shadow-sm">
+                                  {searchingTexts[loadingTextIndex]}
+                                </span>
+                              ) : (
+                                <span className="relative z-10 font-medium text-sm tracking-wide text-gray-600 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
+                                  {thinkingTexts[loadingTextIndex]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.text || '...'}
+                            </ReactMarkdown>
+                            
+                            {/* Sources Pill */}
+                            {msg.sources && msg.sources.length > 0 && (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <button 
+                                  onClick={() => setShowSourcesFor(msg.sources!)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-medium text-gray-700 transition-colors border border-gray-200"
+                                >
+                                  <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                  {new URL(msg.sources[0].uri).hostname.replace('www.', '')}
+                                  {msg.sources.length > 1 && ` +${msg.sources.length - 1} lainnya`}
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Action Buttons */}
+                            {!isThinking && msg.text && (
+                              <div className="flex items-center gap-2 mt-4 text-gray-400">
+                                <button 
+                                  onClick={() => handleLike(idx)}
+                                  className={`p-1.5 rounded-md transition-colors ${likedMessageIndex === idx ? 'text-blue-500 bg-blue-50' : 'hover:text-gray-600 hover:bg-gray-100'}`}
+                                  title="Like"
+                                >
+                                  <ThumbsUp className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleCopy(msg.text, idx)}
+                                  className={`p-1.5 rounded-md transition-colors ${copiedMessageIndex === idx ? 'text-green-500 bg-green-50' : 'hover:text-gray-600 hover:bg-gray-100'}`}
+                                  title="Copy"
+                                >
+                                  {copiedMessageIndex === idx ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                                <button 
+                                  onClick={() => handleShare(msg.text, idx)}
+                                  className={`p-1.5 rounded-md transition-colors ${sharedMessageIndex === idx ? 'text-orange-500 bg-orange-50' : 'hover:text-gray-600 hover:bg-gray-100'}`}
+                                  title="Share"
+                                >
+                                  <Share2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -723,6 +895,14 @@ export default function ZhiyouApp() {
                       title="Tambahkan file"
                     >
                       <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachmentMenuOpen ? 'rotate-45' : ''}`} />
+                    </button>
+                    
+                    <button 
+                      onClick={() => setIsSearchEnabled(!isSearchEnabled)}
+                      className={`p-2 rounded-full transition-all active:scale-90 ${isSearchEnabled ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-200/80 text-gray-500'}`} 
+                      title="Search Web"
+                    >
+                      <Globe className="w-5 h-5" />
                     </button>
                     
                     {/* Attachment Menu Popup */}
@@ -847,6 +1027,56 @@ export default function ZhiyouApp() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Sources Slidebar */}
+      <AnimatePresence>
+        {showSourcesFor && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSourcesFor(null)}
+              className="fixed inset-0 bg-black/20 z-[100] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[101] max-h-[80vh] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-500" />
+                  Sumber Penelusuran
+                </h3>
+                <button onClick={() => setShowSourcesFor(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4 space-y-3">
+                {showSourcesFor.map((source, idx) => (
+                  <a 
+                    key={idx} 
+                    href={source.uri} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex flex-col p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition-all group"
+                  >
+                    <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                      {source.title}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1 truncate">
+                      {source.uri}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
