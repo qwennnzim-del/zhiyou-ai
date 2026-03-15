@@ -351,7 +351,8 @@ export default function ZhiyouApp() {
       });
 
       // Build contents from history
-      const contents = messages.map(m => {
+      const contents: any[] = [];
+      messages.forEach(m => {
         const parts: any[] = [];
         if (m.text) parts.push({ text: m.text });
         if (m.attachments) {
@@ -364,12 +365,21 @@ export default function ZhiyouApp() {
             });
           });
         }
-        // Ensure parts is not empty
-        if (parts.length === 0) parts.push({ text: '' });
-        return { role: m.role, parts };
+        if (parts.length > 0) {
+          // Ensure alternating roles
+          if (contents.length > 0 && contents[contents.length - 1].role === m.role) {
+            contents[contents.length - 1].parts.push(...parts);
+          } else {
+            contents.push({ role: m.role, parts });
+          }
+        }
       });
       
-      contents.push({ role: 'user', parts: messageParts });
+      if (contents.length > 0 && contents[contents.length - 1].role === 'user') {
+        contents[contents.length - 1].parts.push(...messageParts);
+      } else {
+        contents.push({ role: 'user', parts: messageParts });
+      }
 
       let systemInstruction = t('systemPromptBase') + '\n\n' + t('systemPromptLang');
       if (selectedModel === 'zhiyou-3') {
@@ -458,12 +468,12 @@ export default function ZhiyouApp() {
           console.error("Error saving to Firestore:", dbError);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
       setIsThinking(false);
       setMessages(prev => {
         const newMessages = [...prev];
-        newMessages[newMessages.length - 1].text = "Maaf, terjadi kesalahan. Silakan coba lagi.";
+        newMessages[newMessages.length - 1].text = "Maaf, terjadi kesalahan: " + (error?.message || error?.toString() || "Unknown error");
         return newMessages;
       });
     } finally {
