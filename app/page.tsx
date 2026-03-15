@@ -12,6 +12,7 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { collection, doc, setDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from './contexts/LanguageContext';
+import { addTask } from './lib/imageQueue';
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
 
@@ -409,41 +410,43 @@ export default function ZhiyouApp() {
       let sources: Source[] = [];
 
       if (featureMode === 'image') {
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              { text: userText }
-            ]
-          },
-          config: {
-            imageConfig: {
-              aspectRatio: aspectRatio
-            }
-          }
-        });
-
+        if (!user) {
+          setIsThinking(false);
+          setMessages(prev => [...prev, { role: 'model', text: "Silakan login untuk membuat gambar.", sources: [] }]);
+          return;
+        }
+        
+        const taskId = await addTask(user.uid, userText, aspectRatio);
+        
         setIsThinking(false);
-        
-        let imageUrl = '';
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-          if (part.inlineData) {
-            imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-        
-        if (imageUrl) {
-          fullText = `![Generated Image](${imageUrl})`;
-        } else {
-          fullText = "Maaf, gagal membuat gambar.";
-        }
-
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1].text = fullText;
+          newMessages[newMessages.length - 1].text = "Gambar sedang diproses... (ID Tugas: " + taskId + ")";
           return newMessages;
         });
+        
+        // Poll for completion
+        const pollInterval = setInterval(async () => {
+          const taskDoc = await getDoc(doc(db, 'image_tasks', taskId));
+          if (taskDoc.exists()) {
+            const taskData = taskDoc.data();
+            if (taskData.status === 'completed') {
+              clearInterval(pollInterval);
+              setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].text = `![Generated Image](${taskData.resultUrl})`;
+                return newMessages;
+              });
+            } else if (taskData.status === 'failed') {
+              clearInterval(pollInterval);
+              setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].text = "Maaf, gagal membuat gambar: " + taskData.error;
+                return newMessages;
+              });
+            }
+          }
+        }, 3000);
       } else {
         const responseStream = await ai.models.generateContentStream({
           model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
