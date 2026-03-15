@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3.1-flash-image-preview',
         contents: { parts: [{ text: taskData.prompt }] },
         config: {
           imageConfig: { aspectRatio: taskData.aspectRatio }
