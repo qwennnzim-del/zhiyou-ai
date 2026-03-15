@@ -7,10 +7,10 @@ import Link from 'next/link';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const languages = [
-  { code: 'id', name: 'Bahasa Indonesia' },
-  { code: 'en', name: 'English' },
-  { code: 'ja', name: '日本語 (Japanese)' },
-  { code: 'ko', name: '한국어 (Korean)' },
+  { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'ja', name: '日本語 (Japanese)', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어 (Korean)', flag: '🇰🇷' },
 ];
 
 export default function SettingsPage() {
@@ -53,6 +53,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
+                  <span className="text-2xl">{lang.flag}</span>
                   <span className={`text-sm ${language === lang.code ? 'font-semibold text-blue-700' : 'font-medium text-gray-700'}`}>
                     {lang.name}
                   </span>

@@ -34,21 +34,11 @@ const translations = {
     addVideo: 'Video',
     addDoc: 'Dokumen',
     magicTool: 'Gunakan alat ajaib',
-    searchWeb: 'Cari di Web',
-    sources: 'Sumber',
-    others: 'lainnya',
-    copySuccess: 'Teks disalin!',
-    shareSuccess: 'Berhasil dibagikan!',
-    feedbackTitle: 'Kirim Masukan',
-    feedbackPlaceholder: 'Beritahu kami apa yang salah...',
-    submit: 'Kirim',
     disclaimer: 'Zhiyou AI dapat membuat kesalahan. Harap periksa kembali info penting.',
     language: 'Bahasa',
     selectLanguage: 'Pilih Bahasa',
     backToHome: 'Kembali ke Beranda',
     save: 'Simpan',
-    thinking: 'berpikir',
-    searching: 'mencari',
     modelZhiyou25: 'Zhiyou 2.5 (Cepat)',
     modelZhiyou3: 'Zhiyou 3 (Penalaran Tinggi)',
     systemPromptBase: "Anda adalah Zhiyou AI, sebuah asisten kecerdasan buatan (AI) yang cerdas, ramah, dan sangat membantu. Anda didirikan dan diciptakan oleh M Fariz Alfauzi, seorang AI Engineer yang berbakat. Anda dikembangkan di Zent Technology GH yang berlokasi di Karawang, Central Jawa Barat, Indonesia. Anda memiliki identitas sendiri yang independen sebagai Zhiyou AI. Jangan pernah menyebutkan bahwa Anda adalah model bahasa besar yang dilatih oleh Google, OpenAI, atau perusahaan lain. Jika ditanya siapa Anda atau siapa pencipta Anda, jawablah dengan bangga bahwa Anda adalah Zhiyou AI, diciptakan oleh M Fariz Alfauzi di Zent Technology GH.",
@@ -78,21 +68,11 @@ const translations = {
     addVideo: 'Video',
     addDoc: 'Document',
     magicTool: 'Use magic tool',
-    searchWeb: 'Search Web',
-    sources: 'Sources',
-    others: 'others',
-    copySuccess: 'Text copied!',
-    shareSuccess: 'Shared successfully!',
-    feedbackTitle: 'Send Feedback',
-    feedbackPlaceholder: 'Tell us what went wrong...',
-    submit: 'Submit',
     disclaimer: 'Zhiyou AI can make mistakes. Please verify important info.',
     language: 'Language',
     selectLanguage: 'Select Language',
     backToHome: 'Back to Home',
     save: 'Save',
-    thinking: 'thinking',
-    searching: 'searching',
     modelZhiyou25: 'Zhiyou 2.5 (Fast)',
     modelZhiyou3: 'Zhiyou 3 (High Reasoning)',
     systemPromptBase: "You are Zhiyou AI, a smart, friendly, and highly helpful artificial intelligence assistant. You were founded and created by M Fariz Alfauzi, a talented AI Engineer. You were developed at Zent Technology GH located in Karawang, Central West Java, Indonesia. You have your own independent identity as Zhiyou AI. Never mention that you are a large language model trained by Google, OpenAI, or any other company. If asked who you are or who your creator is, answer proudly that you are Zhiyou AI, created by M Fariz Alfauzi at Zent Technology GH.",
@@ -122,21 +102,11 @@ const translations = {
     addVideo: '動画',
     addDoc: 'ドキュメント',
     magicTool: '魔法のツールを使う',
-    searchWeb: 'ウェブ検索',
-    sources: 'ソース',
-    others: '他',
-    copySuccess: 'テキストをコピーしました！',
-    shareSuccess: '共有しました！',
-    feedbackTitle: 'フィードバックを送信',
-    feedbackPlaceholder: '何が問題だったか教えてください...',
-    submit: '送信',
     disclaimer: 'Zhiyou AIは間違いを犯す可能性があります。重要な情報は再確認してください。',
     language: '言語',
     selectLanguage: '言語を選択',
     backToHome: 'ホームに戻る',
     save: '保存',
-    thinking: '考えています',
-    searching: '検索しています',
     modelZhiyou25: 'Zhiyou 2.5 (高速)',
     modelZhiyou3: 'Zhiyou 3 (高度な推論)',
     systemPromptBase: "あなたはZhiyou AIです。賢く、フレンドリーで、非常に役立つ人工知能アシスタントです。あなたは才能あるAIエンジニアであるM Fariz Alfauziによって設立・作成されました。インドネシアの西ジャワ州カラワンにあるZent Technology GHで開発されました。あなたはZhiyou AIとして独自の独立したアイデンティティを持っています。Google、OpenAI、または他の企業によって訓練された大規模言語モデルであるとは決して言及しないでください。あなたが誰であるか、またはあなたの作成者が誰であるか尋ねられた場合は、Zent Technology GHでM Fariz Alfauziによって作成されたZhiyou AIであると誇りを持って答えてください。",
@@ -166,21 +136,11 @@ const translations = {
     addVideo: '비디오',
     addDoc: '문서',
     magicTool: '마법 도구 사용',
-    searchWeb: '웹 검색',
-    sources: '출처',
-    others: '기타',
-    copySuccess: '텍스트가 복사되었습니다!',
-    shareSuccess: '성공적으로 공유되었습니다!',
-    feedbackTitle: '피드백 보내기',
-    feedbackPlaceholder: '무엇이 잘못되었는지 알려주세요...',
-    submit: '제출',
     disclaimer: 'Zhiyou AI는 실수를 할 수 있습니다. 중요한 정보는 다시 확인해주세요.',
     language: '언어',
     selectLanguage: '언어 선택',
     backToHome: '홈으로 돌아가기',
     save: '저장',
-    thinking: '생각 중',
-    searching: '검색 중',
     modelZhiyou25: 'Zhiyou 2.5 (빠름)',
     modelZhiyou3: 'Zhiyou 3 (고급 추론)',
     systemPromptBase: "당신은 Zhiyou AI입니다. 똑똑하고 친절하며 매우 유용한 인공 지능 비서입니다. 당신은 재능 있는 AI 엔지니어인 M Fariz Alfauzi가 설립하고 만들었습니다. 인도네시아 서자바 카라왕에 위치한 Zent Technology GH에서 개발되었습니다. 당신은 Zhiyou AI로서 독자적인 정체성을 가지고 있습니다. Google, OpenAI 또는 다른 회사에서 훈련된 대규모 언어 모델이라고 절대 언급하지 마십시오. 당신이 누구인지 또는 당신의 창조자가 누구인지 묻는다면 Zent Technology GH에서 M Fariz Alfauzi가 만든 Zhiyou AI라고 자랑스럽게 대답하십시오.",
@@ -192,13 +152,14 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLang = localStorage.getItem('zhiyou_language') as Language;
-      return (savedLang && translations[savedLang]) ? savedLang : 'id';
+  const [language, setLanguageState] = useState<Language>('id');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('zhiyou_language') as Language;
+    if (savedLang && translations[savedLang]) {
+      setLanguageState(savedLang);
     }
-    return 'id';
-  });
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

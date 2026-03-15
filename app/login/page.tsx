@@ -165,7 +165,7 @@ export default function LoginPage() {
           </div>
 
           <div className="text-[10px] text-gray-400 text-center leading-relaxed px-4">
-            By signing in with an account, you agree to SO&apos;s<br/>
+            By signing in with an account, you agree to SO's<br/>
             <Link href="/terms" className="underline hover:text-gray-600">Terms of Service</Link> and <Link href="/privacy" className="underline hover:text-gray-600">Privacy Policy</Link>.
           </div>
         </div>

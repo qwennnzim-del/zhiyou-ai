@@ -21,7 +21,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Informasi yang Kami Kumpulkan</h2>
-            <p>Kami mengumpulkan beberapa jenis informasi dari dan tentang pengguna Situs Web kami, termasuk informasi yang dengannya Anda dapat diidentifikasi secara pribadi, seperti nama, alamat pos, alamat email, nomor telepon, atau pengenal lain yang dengannya Anda dapat dihubungi secara online atau offline (&quot;informasi pribadi&quot;).</p>
+            <p>Kami mengumpulkan beberapa jenis informasi dari dan tentang pengguna Situs Web kami, termasuk informasi yang dengannya Anda dapat diidentifikasi secara pribadi, seperti nama, alamat pos, alamat email, nomor telepon, atau pengenal lain yang dengannya Anda dapat dihubungi secara online atau offline ("informasi pribadi").</p>
           </section>
 
           <section>

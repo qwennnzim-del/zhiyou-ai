@@ -1,34 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Menu, 
-  Plus, 
-  Wand2, 
-  ArrowUp, 
-  ChevronDown, 
-  X, 
-  Settings, 
-  HelpCircle, 
-  LogIn, 
-  Image as ImageIcon, 
-  Video, 
-  FileText, 
-  Paperclip, 
-  ArrowLeft, 
-  BookOpen, 
-  Search, 
-  Trash2,
-  Globe,
-  ThumbsUp,
-  ThumbsDown,
-  Share2,
-  Copy,
-  Check,
-  ExternalLink,
-  Pencil,
-  Sparkles
-} from 'lucide-react';
+import { Menu, Plus, Wand2, ArrowUp, ChevronDown, X, Settings, HelpCircle, LogIn, Image as ImageIcon, Video, FileText, Paperclip, ArrowLeft, BookOpen, Search, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -55,8 +28,6 @@ type Message = {
   role: 'user' | 'model';
   text: string;
   attachments?: Attachment[];
-  groundingMetadata?: any;
-  feedback?: string;
 };
 
 type Chat = {
@@ -103,13 +74,6 @@ export default function ZhiyouApp() {
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
-  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
-  const [showSources, setShowSources] = useState<any>(null);
-  const [feedbackMessageIdx, setFeedbackMessageIdx] = useState<number | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [copyToast, setCopyToast] = useState(false);
-  const [editingMessageIdx, setEditingMessageIdx] = useState<number | null>(null);
-  const [editInput, setEditInput] = useState('');
   const { t, language } = useLanguage();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -262,42 +226,6 @@ export default function ZhiyouApp() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopyToast(true);
-    setTimeout(() => setCopyToast(false), 2000);
-  };
-
-  const handleShare = async (text: string) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Zhiyou AI Chat',
-          text: text,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.error('Error sharing:', err);
-      }
-    } else {
-      handleCopy(text);
-    }
-  };
-
-  const submitFeedback = () => {
-    if (feedbackMessageIdx === null) return;
-    
-    setMessages(prev => {
-      const newMessages = [...prev];
-      newMessages[feedbackMessageIdx].feedback = feedbackText;
-      return newMessages;
-    });
-    
-    // In a real app, you'd send this to Firestore
-    setFeedbackMessageIdx(null);
-    setFeedbackText('');
-  };
-
   const triggerFileInput = (accept: string) => {
     if (fileInputRef.current) {
       fileInputRef.current.accept = accept;
@@ -338,25 +266,18 @@ export default function ZhiyouApp() {
     }
   };
 
-  const handleSend = async (overrideText?: string) => {
-    if ((!input.trim() && !overrideText && attachments.length === 0) || isLoading) return;
+  const handleSend = async () => {
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
     
-    const userText = overrideText || input.trim();
-    const currentAttachments = overrideText ? [] : [...attachments];
+    const userText = input.trim();
+    const currentAttachments = [...attachments];
     
-    if (!overrideText) {
-      setInput('');
-      setAttachments([]);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
+    setInput('');
+    setAttachments([]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
     }
     
-    if (editingMessageIdx !== null) {
-      setMessages(prev => prev.slice(0, editingMessageIdx));
-      setEditingMessageIdx(null);
-    }
-
     setMessages(prev => [...prev, { role: 'user', text: userText, attachments: currentAttachments }]);
     setIsLoading(true);
     setIsThinking(true);
@@ -376,35 +297,19 @@ export default function ZhiyouApp() {
         });
       });
 
-      const responseStream = await chatRef.current.sendMessageStream({ 
-        message: messageParts,
-        config: {
-          tools: isSearchEnabled ? [{ googleSearch: {} }] : []
-        }
-      });
+      const responseStream = await chatRef.current.sendMessageStream({ message: messageParts });
       
       let firstChunk = true;
       let fullText = '';
-      let groundingMetadata: any = null;
-
       for await (const chunk of responseStream) {
         if (firstChunk) {
           setIsThinking(false);
           firstChunk = false;
         }
         fullText += chunk.text;
-        
-        // Extract grounding metadata if available
-        if (chunk.candidates?.[0]?.groundingMetadata) {
-          groundingMetadata = chunk.candidates[0].groundingMetadata;
-        }
-
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].text = fullText;
-          if (groundingMetadata) {
-            newMessages[newMessages.length - 1].groundingMetadata = groundingMetadata;
-          }
           return newMessages;
         });
       }
@@ -502,13 +407,13 @@ export default function ZhiyouApp() {
             className={`fixed md:static inset-y-0 left-0 w-72 bg-[#f9f9f9] border-r border-gray-200 z-50 flex flex-col ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}
           >
             <div className="p-4 flex items-center justify-between">
-              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 border border-gray-200 hover:border-blue-200 active:scale-95 px-3 py-2.5 rounded-xl transition-all w-full shadow-sm group">
-                <div className="w-6 h-6 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 group-hover:border-blue-100 flex items-center justify-center shadow-sm transition-colors">
-                  <Plus className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
+              <button onClick={() => { setMessages([]); setChatId(null); setIsSidebarOpen(false); }} className="flex items-center gap-2 hover:bg-gray-200 active:scale-95 px-3 py-2 rounded-lg transition-all w-full">
+                <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+                  <ZhiyouLogo className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-sm">{t('newChat')}</span>
+                <span className="font-medium">{t('newChat')}</span>
               </button>
-              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all ml-2">
+              <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 hover:bg-gray-200 active:scale-90 rounded-full transition-all">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
@@ -535,7 +440,7 @@ export default function ZhiyouApp() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05, duration: 0.2 }}
                     key={chat.id} 
-                    className={`group relative w-full flex items-center px-3 py-2.5 rounded-xl text-sm transition-all mb-1 ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-semibold shadow-sm border border-blue-100' : 'hover:bg-gray-200/70 text-gray-700 border border-transparent hover:border-gray-300/50'}`}
+                    className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${chatId === chat.id ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700'}`}
                   >
                     <button 
                       onClick={() => loadChat(chat.id)}
@@ -582,13 +487,13 @@ export default function ZhiyouApp() {
           <div className="flex-1 flex justify-center md:justify-start md:ml-4 relative" ref={modelMenuRef}>
             <button 
               onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-blue-50 active:scale-95 rounded-full text-sm font-semibold transition-all border border-gray-200 hover:border-blue-200 hover:text-blue-600 shadow-sm"
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-50 hover:bg-gray-100 active:scale-95 rounded-full text-sm font-medium transition-all border border-gray-200"
             >
-              <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shadow-sm">
+              <div className="w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
                 <ZhiyouLogo className="w-3.5 h-3.5" />
               </div>
               {selectedModel === 'gemini-2.5-flash' ? 'Zhiyou 2.5' : 'Zhiyou 3'}
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isModelMenuOpen ? 'rotate-180 text-blue-500' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             
             <AnimatePresence>
@@ -680,165 +585,63 @@ export default function ZhiyouApp() {
                 >
                   {msg.role === 'model' && (
                     <div className="relative w-8 h-8 flex-shrink-0 mt-1 flex items-center justify-center">
-                      <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-sm overflow-hidden">
+                      <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
                         <div 
-                          className={`absolute inset-0 rounded-full animate-border-spin transition-all duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-100 scale-110' : 'opacity-100 scale-100'}`}
-                          style={{ 
-                            backgroundImage: (isThinking && idx === messages.length - 1) 
-                              ? 'conic-gradient(from var(--angle), transparent 40%, #3b82f6, #8b5cf6, #ec4899)' 
-                              : 'conic-gradient(from var(--angle), #4ade80, #3b82f6, #8b5cf6, #4ade80)' 
-                          }}
+                          className={`absolute inset-0 rounded-full animate-border-spin transition-opacity duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-100' : 'opacity-0'}`}
+                          style={{ backgroundImage: 'conic-gradient(from var(--angle), transparent 60%, #3b82f6, #8b5cf6, #ec4899)' }}
+                        ></div>
+                        <div 
+                          className={`absolute inset-0 rounded-full animate-border-spin transition-opacity duration-700 ${(isThinking && idx === messages.length - 1) ? 'opacity-0' : 'opacity-100'}`}
+                          style={{ backgroundImage: 'conic-gradient(from var(--angle), #3b82f6, #8b5cf6, #ec4899, #f43f5e, #f59e0b, #3b82f6)' }}
                         ></div>
                         <div className="absolute inset-[2px] bg-white rounded-full z-10 flex items-center justify-center">
-                          <ZhiyouLogo className="w-5 h-5" />
+                          <AnimatePresence>
+                            {!(isThinking && idx === messages.length - 1) && (
+                              <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
+                              >
+                                <ZhiyouLogo className="w-5 h-5" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </div>
                   )}
                   
-                  <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#f4f4f5] px-5 py-3 rounded-3xl rounded-tr-sm relative group/msg' : ''}`}>
+                  <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#f4f4f5] px-5 py-3 rounded-3xl rounded-tr-sm' : ''}`}>
                     {msg.role === 'user' ? (
                       <div className="flex flex-col gap-2">
-                        {editingMessageIdx === idx ? (
-                          <div className="flex flex-col gap-2 min-w-[200px]">
-                            <textarea
-                              autoFocus
-                              value={editInput}
-                              onChange={(e) => setEditInput(e.target.value)}
-                              className="w-full bg-white border border-gray-200 rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                              rows={3}
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button 
-                                onClick={() => setEditingMessageIdx(null)}
-                                className="px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-200 rounded-lg transition-all"
-                              >
-                                {t('cancel')}
-                              </button>
-                              <button 
-                                onClick={() => handleSend(editInput)}
-                                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
-                              >
-                                {t('submit')}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {msg.attachments.map((att, i) => (
-                                  <div key={i} className="flex items-center gap-2 bg-white/60 border border-gray-200/60 rounded-xl p-2 shadow-sm">
-                                    {att.previewUrl ? (
-                                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                        <img src={att.previewUrl} alt="preview" className="w-full h-full object-cover" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                                        {att.mimeType.startsWith('video/') ? <Video className="w-5 h-5 text-blue-500" /> : <FileText className="w-5 h-5 text-blue-500" />}
-                                      </div>
-                                    )}
-                                    <div className="flex flex-col min-w-0 pr-2">
-                                      <span className="text-xs font-medium text-gray-700 truncate">{truncateName(att.name)}</span>
-                                      <span className="text-[10px] text-gray-500">{att.size}</span>
-                                    </div>
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {msg.attachments.map((att, i) => (
+                              <div key={i} className="flex items-center gap-2 bg-white/60 border border-gray-200/60 rounded-xl p-2 shadow-sm">
+                                {att.previewUrl ? (
+                                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <img src={att.previewUrl} alt="preview" className="w-full h-full object-cover" />
                                   </div>
-                                ))}
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                    {att.mimeType.startsWith('video/') ? <Video className="w-5 h-5 text-blue-500" /> : <FileText className="w-5 h-5 text-blue-500" />}
+                                  </div>
+                                )}
+                                <div className="flex flex-col min-w-0 pr-2">
+                                  <span className="text-xs font-medium text-gray-700 truncate">{truncateName(att.name)}</span>
+                                  <span className="text-[10px] text-gray-500">{att.size}</span>
+                                </div>
                               </div>
-                            )}
-                            {msg.text && <p className="text-gray-800 whitespace-pre-wrap">{msg.text}</p>}
-                            <button 
-                              onClick={() => { setEditingMessageIdx(idx); setEditInput(msg.text); }}
-                              className="absolute -left-10 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full opacity-0 group-hover/msg:opacity-100 transition-all active:scale-90"
-                              title="Edit"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                          </>
+                            ))}
+                          </div>
                         )}
+                        {msg.text && <p className="text-gray-800 whitespace-pre-wrap">{msg.text}</p>}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2 w-full">
-                        <div className="text-gray-800 leading-relaxed overflow-hidden">
-                          {isThinking && idx === messages.length - 1 && !msg.text ? (
-                            <div className="flex items-center gap-3 py-2">
-                              <div className="relative w-6 h-6 flex-shrink-0">
-                                <div className="absolute inset-0 rounded-full animate-border-spin border-2 border-transparent" style={{ borderTopColor: '#3b82f6', borderRightColor: '#8b5cf6' }}></div>
-                              </div>
-                              {isSearchEnabled ? (
-                                <div className="flex items-center gap-2">
-                                  <svg className="w-4 h-4 animate-pulse" viewBox="0 0 24 24">
-                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                  </svg>
-                                  <span className="text-sm font-medium bg-gradient-to-r from-[#4285F4] via-[#EA4335] via-[#FBBC05] to-[#34A853] bg-clip-text text-transparent animate-pulse">
-                                    {t('searching')}...
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-sm font-medium animate-shimmer">
-                                  {t('thinking')}...
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {msg.text}
-                              </ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
-                          
-                          {/* Grounding Sources Pill */}
-                          {msg.groundingMetadata?.groundingChunks && (
-                            <div className="mt-4 pt-4 border-t border-gray-50">
-                              <button 
-                                onClick={() => setShowSources(msg.groundingMetadata)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full text-xs font-medium text-gray-600 transition-all active:scale-95"
-                              >
-                                <Globe className="w-3 h-3 text-blue-500" />
-                                <span className="truncate max-w-[120px]">
-                                  {msg.groundingMetadata.groundingChunks[0]?.web?.uri?.replace('https://', '').replace('www.', '').split('/')[0]}
-                                </span>
-                                {msg.groundingMetadata.groundingChunks.length > 1 && (
-                                  <span className="text-gray-400">
-                                    {msg.groundingMetadata.groundingChunks.length - 1}+ {t('others')}
-                                  </span>
-                                )}
-                              </button>
-                            </div>
-                          )}
-
-                        {/* Message Actions */}
-                        <div className="flex items-center gap-1 ml-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-300">
-                          <button className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all active:scale-90" title="Like">
-                            <ThumbsUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => setFeedbackMessageIdx(idx)}
-                            className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all active:scale-90" 
-                            title="Unlike"
-                          >
-                            <ThumbsDown className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleCopy(msg.text)}
-                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all active:scale-90" 
-                            title="Copy"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleShare(msg.text)}
-                            className="p-1.5 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all active:scale-90" 
-                            title="Share"
-                          >
-                            <Share2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {msg.text || '...'}
+                        </ReactMarkdown>
                       </div>
                     )}
                   </div>
@@ -916,7 +719,7 @@ export default function ZhiyouApp() {
                   <div className="flex items-center gap-1 relative" ref={attachmentMenuRef}>
                     <button 
                       onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                      className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-blue-100 text-blue-600' : 'hover:bg-blue-50 text-gray-500 hover:text-blue-600'}`} 
+                      className={`p-2 rounded-full transition-all active:scale-90 ${isAttachmentMenuOpen ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-200/80 text-gray-500'}`} 
                       title="Tambahkan file"
                     >
                       <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachmentMenuOpen ? 'rotate-45' : ''}`} />
@@ -932,19 +735,19 @@ export default function ZhiyouApp() {
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 flex flex-col gap-0.5 z-50 min-w-[160px]"
                         >
-                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('image/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                               <ImageIcon className="w-4 h-4 text-blue-500" />
                             </div>
                             {t('addImage')}
                           </button>
-                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-purple-50 hover:text-purple-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('video/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                               <Video className="w-4 h-4 text-purple-500" />
                             </div>
                             {t('addVideo')}
                           </button>
-                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50 hover:text-orange-600 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                          <button onClick={() => triggerFileInput('*/*')} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                             <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
                               <FileText className="w-4 h-4 text-orange-500" />
                             </div>
@@ -954,24 +757,15 @@ export default function ZhiyouApp() {
                       )}
                     </AnimatePresence>
 
-                    <button 
-                      onClick={() => setIsSearchEnabled(!isSearchEnabled)}
-                      className={`p-2 rounded-full transition-all active:scale-90 relative ${isSearchEnabled ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-500 hover:text-blue-600'}`} 
-                      title={t('searchWeb')}
-                    >
-                      <Pencil className="w-5 h-5" />
-                      <Sparkles className={`w-3 h-3 absolute -top-0.5 -right-0.5 transition-transform duration-500 ${isSearchEnabled ? 'scale-110 rotate-12 text-yellow-300' : 'scale-75 opacity-50'}`} />
-                    </button>
-
-                    <button className="p-2 hover:bg-emerald-50 hover:text-emerald-600 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
+                    <button className="p-2 hover:bg-gray-200/80 active:scale-90 rounded-full transition-all text-gray-500" title={t('magicTool')}>
                       <Wand2 className="w-5 h-5" />
                     </button>
                   </div>
                   
                   <button 
-                    onClick={() => handleSend()}
+                    onClick={handleSend}
                     disabled={(!input.trim() && attachments.length === 0) || isLoading}
-                    className="p-2 bg-blue-600 hover:bg-blue-700 active:scale-90 disabled:opacity-50 disabled:hover:bg-blue-600 disabled:active:scale-100 rounded-full transition-all text-white shadow-lg shadow-blue-200"
+                    className="p-2 bg-gray-200 hover:bg-gray-300 active:scale-90 disabled:opacity-50 disabled:hover:bg-gray-200 disabled:active:scale-100 rounded-full transition-all text-gray-700"
                   >
                     <ArrowUp className="w-5 h-5" />
                   </button>
@@ -993,96 +787,6 @@ export default function ZhiyouApp() {
           </div>
         </div>
       </div>
-
-      {/* Sources Bottom Sheet */}
-      <AnimatePresence>
-        {showSources && (
-          <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/40 backdrop-blur-sm">
-            <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-white rounded-t-3xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl"
-            >
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">{t('sources')}</h3>
-                <button onClick={() => setShowSources(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {showSources.groundingChunks?.map((chunk: any, i: number) => (
-                  <a 
-                    key={i} 
-                    href={chunk.web?.uri} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all group"
-                  >
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold text-gray-900 truncate">{chunk.web?.title || 'Source'}</span>
-                      <span className="text-xs text-gray-500 truncate">{chunk.web?.uri}</span>
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
-                  </a>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Feedback Popup */}
-      <AnimatePresence>
-        {feedbackMessageIdx !== null && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
-            >
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('feedbackTitle')}</h3>
-              <textarea 
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder={t('feedbackPlaceholder')}
-                className="w-full h-32 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none mb-4"
-              />
-              <div className="flex gap-3 justify-end">
-                <button 
-                  onClick={() => setFeedbackMessageIdx(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  {t('cancel')}
-                </button>
-                <button 
-                  onClick={submitFeedback}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                >
-                  {t('submit')}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Copy Toast */}
-      <AnimatePresence>
-        {copyToast && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[150] bg-gray-900 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg flex items-center gap-2"
-          >
-            <Check className="w-4 h-4 text-green-400" />
-            {t('copySuccess')}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Logout Confirmation Dialog */}
       <AnimatePresence>
