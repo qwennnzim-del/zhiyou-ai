@@ -382,20 +382,24 @@ export default function ZhiyouApp() {
       }
 
       let systemInstruction = t('systemPromptBase') + '\n\n' + t('systemPromptLang');
-      if (selectedModel === 'zhiyou-3') {
-        systemInstruction += '\n\n[MODE PENALARAN TINGGI AKTIF]: ' + t('systemPromptReasoning');
-      }
-
       const config: any = {
         systemInstruction: systemInstruction,
       };
+
+      if (selectedModel === 'zhiyou-3') {
+        config.systemInstruction += '\n\n[MODE PENALARAN TINGGI AKTIF]: ' + t('systemPromptReasoning') + '\n\nAnda diinstruksikan untuk bertindak sebagai model dengan kemampuan penalaran tingkat tinggi (Pro). Analisis setiap masalah secara mendalam, berpikir selangkah demi selangkah (step-by-step), dan berikan jawaban yang sangat komprehensif, akurat, logis, dan terstruktur dengan baik.';
+        config.temperature = 0.2; // Lower temperature for more focused, analytical reasoning
+        config.topP = 0.95;
+      } else {
+        config.temperature = 0.7; // Standard temperature for normal chat
+      }
 
       if (isSearchEnabled) {
         config.tools = [{ googleSearch: {} }];
       }
 
       const responseStream = await ai.models.generateContentStream({
-        model: selectedModel === 'zhiyou-3' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
         contents: contents,
         config: config
       });
