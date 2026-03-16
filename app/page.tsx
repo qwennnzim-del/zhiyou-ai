@@ -35,6 +35,7 @@ type Message = {
   text: string;
   attachments?: Attachment[];
   sources?: Source[];
+  imageResults?: string[];
 };
 
 type Chat = {
@@ -83,9 +84,10 @@ export default function ZhiyouApp() {
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
-  const [featureMode, setFeatureMode] = useState<'chat' | 'image' | 'research' | 'learning'>('chat');
+  const [featureMode, setFeatureMode] = useState<'chat' | 'image' | 'research' | 'learning' | 'imageSearch'>('chat');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [showSourcesFor, setShowSourcesFor] = useState<Source[] | null>(null);
+  const [showImagesFor, setShowImagesFor] = useState<string[] | null>(null);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const [likedMessageIndex, setLikedMessageIndex] = useState<number | null>(null);
   const [sharedMessageIndex, setSharedMessageIndex] = useState<number | null>(null);
@@ -447,6 +449,61 @@ export default function ZhiyouApp() {
             }
           }
         }, 3000);
+      } else if (featureMode === 'imageSearch') {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-image-preview',
+          contents: contents,
+          config: {
+            systemInstruction: systemInstruction + "\n\nCari gambar yang relevan dengan deskripsi pengguna menggunakan alat pencarian gambar Google. Berikan penjelasan singkat tentang apa yang Anda temukan.",
+            tools: [{ 
+              googleSearch: { 
+                searchTypes: { 
+                  imageSearch: {} 
+                } 
+              } 
+            }]
+          }
+        });
+
+        setIsThinking(false);
+        let imageResults: string[] = [];
+        let sources: Source[] = [];
+        
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks) {
+          chunks.forEach((gc: any) => {
+            if (gc.web?.uri) {
+              // Extract images from web URIs or use them directly if they look like images
+              if (gc.web.uri.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || gc.web.uri.includes('img') || gc.web.uri.includes('photo')) {
+                imageResults.push(gc.web.uri);
+              } else {
+                sources.push({ uri: gc.web.uri, title: gc.web.title || 'Image Source' });
+              }
+            }
+          });
+        }
+
+        // If no direct images found in chunks, try to find them in the text response (markdown images)
+        if (imageResults.length === 0 && response.text) {
+          const mdImageRegex = /!\[.*?\]\((.*?)\)/g;
+          let match;
+          while ((match = mdImageRegex.exec(response.text)) !== null) {
+            imageResults.push(match[1]);
+          }
+        }
+
+        // Fallback: if still no images, but we have sources, maybe the sources are actually images
+        if (imageResults.length === 0 && sources.length > 0) {
+          imageResults = sources.slice(0, 6).map(s => s.uri);
+        }
+
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].text = response.text || "Berikut adalah beberapa gambar yang saya temukan:";
+          newMessages[newMessages.length - 1].imageResults = imageResults;
+          newMessages[newMessages.length - 1].sources = sources;
+          return newMessages;
+        });
       } else {
         const responseStream = await ai.models.generateContentStream({
           model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
@@ -506,7 +563,8 @@ export default function ZhiyouApp() {
                 name: a.name,
                 size: a.size
               })) || [],
-              sources: m.sources || []
+              sources: m.sources || [],
+              imageResults: m.imageResults || []
             }));
             
             setDoc(chatRef, {
@@ -746,10 +804,42 @@ export default function ZhiyouApp() {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-gray-500 text-lg sm:text-xl text-center max-w-md"
+                className="text-gray-500 text-lg sm:text-xl text-center max-w-md mb-8"
               >
                 {t('howCanIHelp')}
               </motion.p>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl"
+              >
+                <button 
+                  onClick={() => setFeatureMode('imageSearch')}
+                  className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all text-left group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Search className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{t('featureSearchImage')}</div>
+                    <div className="text-xs text-gray-500">Cari gambar referensi di web</div>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => setFeatureMode('image')}
+                  className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl hover:border-pink-200 hover:bg-pink-50/30 transition-all text-left group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ImageIcon className="w-5 h-5 text-pink-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{t('featureGenerateImage')}</div>
+                    <div className="text-xs text-gray-500">Buat gambar AI dari teks</div>
+                  </div>
+                </button>
+              </motion.div>
             </div>
           ) : (
             <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-8">
@@ -817,6 +907,23 @@ export default function ZhiyouApp() {
                       </div>
                     ) : (
                       <div className="prose prose-slate max-w-none prose-p:leading-relaxed prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200 prose-a:text-blue-600">
+                        {msg.imageResults && msg.imageResults.length > 0 && (
+                          <div 
+                            onClick={() => setShowImagesFor(msg.imageResults!)}
+                            className="mb-4 grid grid-cols-2 gap-1 rounded-2xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity border border-gray-100 shadow-sm"
+                          >
+                            {msg.imageResults.slice(0, 4).map((img, i) => (
+                              <div key={i} className={`relative aspect-square bg-gray-100 ${msg.imageResults!.length === 1 ? 'col-span-2 aspect-video' : ''}`}>
+                                <img src={img} alt="Search result" className="w-full h-full object-cover" />
+                                {i === 3 && msg.imageResults!.length > 4 && (
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold text-xl backdrop-blur-[2px]">
+                                    +{msg.imageResults!.length - 4}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {isThinking && idx === messages.length - 1 && !msg.text ? (
                           <div className="flex items-center gap-2 mt-2">
                             <div className="relative overflow-hidden rounded-full px-4 py-1.5 bg-gray-100/80 border border-gray-200/50 shadow-sm">
@@ -942,10 +1049,12 @@ export default function ZhiyouApp() {
                   <div className="flex items-center gap-2 mb-2">
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100">
                       {featureMode === 'image' && <ImageIcon className="w-3.5 h-3.5" />}
+                      {featureMode === 'imageSearch' && <Search className="w-3.5 h-3.5" />}
                       {featureMode === 'research' && <Search className="w-3.5 h-3.5" />}
                       {featureMode === 'learning' && <BookOpen className="w-3.5 h-3.5" />}
                       <span>
                         {featureMode === 'image' && t('featureGenerateImage')}
+                        {featureMode === 'imageSearch' && t('featureSearchImage')}
                         {featureMode === 'research' && t('featureDeepResearch')}
                         {featureMode === 'learning' && t('featureGuidedLearning')}
                       </span>
@@ -954,19 +1063,17 @@ export default function ZhiyouApp() {
                       </button>
                     </div>
                     {featureMode === 'image' && (
-                      <div className="flex items-center gap-2">
-                        <select 
-                          value={aspectRatio}
-                          onChange={(e) => setAspectRatio(e.target.value)}
-                          className="text-xs font-medium bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700 outline-none focus:border-blue-300"
-                        >
-                          <option value="1:1">1:1 Square</option>
-                          <option value="16:9">16:9 Landscape</option>
-                          <option value="9:16">9:16 Portrait</option>
-                          <option value="4:3">4:3 Standard</option>
-                          <option value="3:4">3:4 Vertical</option>
-                        </select>
-                      </div>
+                      <select 
+                        value={aspectRatio}
+                        onChange={(e) => setAspectRatio(e.target.value)}
+                        className="text-xs font-medium bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700 outline-none focus:border-blue-300"
+                      >
+                        <option value="1:1">1:1 Square</option>
+                        <option value="16:9">16:9 Landscape</option>
+                        <option value="9:16">9:16 Portrait</option>
+                        <option value="4:3">4:3 Standard</option>
+                        <option value="3:4">3:4 Vertical</option>
+                      </select>
                     )}
                   </div>
                 )}
@@ -981,7 +1088,7 @@ export default function ZhiyouApp() {
                       handleSend();
                     }
                   }}
-                  placeholder={featureMode === 'image' ? t('describeImage') : t('askAnything')}
+                  placeholder={featureMode === 'image' ? t('describeImage') : featureMode === 'imageSearch' ? t('describeSearchImage') : t('askAnything')}
                   className={`w-full bg-transparent resize-none outline-none max-h-48 min-h-[40px] text-gray-800 placeholder:text-gray-500 text-base transition-opacity duration-300 ${input.length > 0 ? 'opacity-100' : 'opacity-70'}`}
                   rows={1}
                 />
@@ -1059,6 +1166,12 @@ export default function ZhiyouApp() {
                                 <ImageIcon className="w-4 h-4 text-pink-500" />
                               </div>
                               {t('featureGenerateImage')}
+                            </button>
+                            <button onClick={() => { setFeatureMode('imageSearch'); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
+                              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <Search className="w-4 h-4 text-blue-500" />
+                              </div>
+                              {t('featureSearchImage')}
                             </button>
                             <button onClick={() => { alert(t('featureComingSoon')); setIsFeatureMenuOpen(false); }} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 active:scale-[0.98] rounded-xl text-sm font-medium text-gray-700 transition-all text-left">
                               <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -1210,6 +1323,63 @@ export default function ZhiyouApp() {
                     </span>
                   </a>
                 ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Image Gallery Slidebar */}
+      <AnimatePresence>
+        {showImagesFor && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowImagesFor(null)}
+              className="fixed inset-0 bg-black/40 z-[100] backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[101] max-h-[90vh] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-blue-500" />
+                  Galeri Gambar
+                </h3>
+                <button onClick={() => setShowImagesFor(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {showImagesFor.map((img, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 shadow-sm group"
+                    >
+                      <img src={img} alt={`Result ${idx}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <a 
+                          href={img} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        >
+                          <ImageIcon className="w-4 h-4 text-gray-700" />
+                        </a>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </>
