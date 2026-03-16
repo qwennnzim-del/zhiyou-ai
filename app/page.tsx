@@ -83,7 +83,6 @@ export default function ZhiyouApp() {
   const [isTyping, setIsTyping] = useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
-  const [useLexicaReference, setUseLexicaReference] = useState(false); // Tambahkan state ini
   const [featureMode, setFeatureMode] = useState<'chat' | 'image' | 'research' | 'learning'>('chat');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [showSourcesFor, setShowSourcesFor] = useState<Source[] | null>(null);
@@ -417,7 +416,7 @@ export default function ZhiyouApp() {
           return;
         }
         
-        const taskId = await addTask(user.uid, userText, aspectRatio, useLexicaReference);
+        const taskId = await addTask(user.uid, userText, aspectRatio);
         
         setIsThinking(false);
         setMessages(prev => {
@@ -967,13 +966,6 @@ export default function ZhiyouApp() {
                           <option value="4:3">4:3 Standard</option>
                           <option value="3:4">3:4 Vertical</option>
                         </select>
-                        <button
-                          type="button"
-                          onClick={() => setUseLexicaReference(!useLexicaReference)}
-                          className={`text-xs font-medium border rounded-full px-3 py-1 transition-colors ${useLexicaReference ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
-                        >
-                          Lexica Ref: {useLexicaReference ? 'On' : 'Off'}
-                        </button>
                       </div>
                     )}
                   </div>

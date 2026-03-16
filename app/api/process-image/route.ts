@@ -22,32 +22,6 @@ export async function POST(req: NextRequest) {
 
     try {
       const contents: any[] = [];
-      
-      if (taskData.useLexicaReference) {
-        const lexicaResponse = await fetch(`https://lexica.art/api/v1/search?q=${encodeURIComponent(taskData.prompt)}`);
-        const lexicaData = await lexicaResponse.json();
-        
-        if (lexicaData.images && lexicaData.images.length > 0) {
-          const imageUrl = lexicaData.images[0].src;
-          const imageResponse = await fetch(imageUrl);
-          const imageBuffer = await imageResponse.arrayBuffer();
-          // Use btoa for edge compatibility instead of Buffer
-          const bytes = new Uint8Array(imageBuffer);
-          let binary = '';
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          const base64Image = btoa(binary);
-          
-          contents.push({
-            inlineData: {
-              data: base64Image,
-              mimeType: 'image/jpeg'
-            }
-          });
-        }
-      }
-      
       contents.push({ text: `Generate a new, high-quality, realistic image based on this prompt: ${taskData.prompt}` });
 
       const response = await ai.models.generateContent({
