@@ -21,9 +21,32 @@ export async function POST(req: NextRequest) {
     await updateDoc(doc(db, 'image_tasks', taskDoc.id), { status: 'processing', startedAt: serverTimestamp() });
 
     try {
+      const contents: any[] = [];
+      
+      if (taskData.useLexicaReference) {
+        const lexicaResponse = await fetch(`https://lexica.art/api/v1/search?q=${encodeURIComponent(taskData.prompt)}`);
+        const lexicaData = await lexicaResponse.json();
+        
+        if (lexicaData.images && lexicaData.images.length > 0) {
+          const imageUrl = lexicaData.images[0].src;
+          const imageResponse = await fetch(imageUrl);
+          const imageBuffer = await imageResponse.arrayBuffer();
+          const base64Image = Buffer.from(imageBuffer).toString('base64');
+          
+          contents.push({
+            inlineData: {
+              data: base64Image,
+              mimeType: 'image/jpeg'
+            }
+          });
+        }
+      }
+      
+      contents.push({ text: `Generate a new, high-quality, realistic image based on this prompt: ${taskData.prompt}` });
+
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
-        contents: { parts: [{ text: taskData.prompt }] },
+        contents: { parts: contents },
         config: {
           imageConfig: { aspectRatio: taskData.aspectRatio }
         }
