@@ -21,9 +21,12 @@ export async function POST(req: NextRequest) {
     await updateDoc(doc(db, 'image_tasks', taskDoc.id), { status: 'processing', startedAt: serverTimestamp() });
 
     try {
+      const contents: any[] = [];
+      contents.push({ text: `Generate a new, high-quality, realistic image based on this prompt: ${taskData.prompt}` });
+
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
-        contents: { parts: [{ text: taskData.prompt }] },
+        contents: { parts: contents },
         config: {
           imageConfig: { aspectRatio: taskData.aspectRatio }
         }
