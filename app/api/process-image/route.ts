@@ -32,9 +32,12 @@ export async function POST(req: NextRequest) {
           const imageResponse = await fetch(imageUrl);
           const imageBuffer = await imageResponse.arrayBuffer();
           // Use btoa for edge compatibility instead of Buffer
-          const base64Image = btoa(
-            new Uint8Array(imageBuffer)
-              .reduce((data, byte) => data + String.fromCharCode(byte), '')
+          const bytes = new Uint8Array(imageBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64Image = btoa(binary);
           );
           
           contents.push({
