@@ -450,60 +450,36 @@ export default function ZhiyouApp() {
           }
         }, 3000);
       } else if (featureMode === 'imageSearch') {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-image-preview',
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction + "\n\nCari gambar yang relevan dengan deskripsi pengguna menggunakan alat pencarian gambar Google. Berikan penjelasan singkat tentang apa yang Anda temukan.",
-            tools: [{ 
-              googleSearch: { 
-                searchTypes: { 
-                  imageSearch: {} 
-                } 
-              } 
-            }]
-          }
-        });
+        try {
+          const response = await fetch('/api/search-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: userText })
+          });
+          
+          const data = await response.json();
+          setIsThinking(false);
 
-        setIsThinking(false);
-        let imageResults: string[] = [];
-        let sources: Source[] = [];
-        
-        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        if (chunks) {
-          chunks.forEach((gc: any) => {
-            if (gc.web?.uri) {
-              // Extract images from web URIs or use them directly if they look like images
-              if (gc.web.uri.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || gc.web.uri.includes('img') || gc.web.uri.includes('photo')) {
-                imageResults.push(gc.web.uri);
-              } else {
-                sources.push({ uri: gc.web.uri, title: gc.web.title || 'Image Source' });
-              }
-            }
+          if (!response.ok) {
+            throw new Error(data.error || 'Gagal mencari gambar');
+          }
+
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].text = data.images && data.images.length > 0 
+              ? `Berikut adalah beberapa gambar yang saya temukan untuk "${userText}":`
+              : `Maaf, saya tidak dapat menemukan gambar untuk "${userText}".`;
+            newMessages[newMessages.length - 1].imageResults = data.images || [];
+            return newMessages;
+          });
+        } catch (error: any) {
+          setIsThinking(false);
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].text = "Maaf, terjadi kesalahan saat mencari gambar: " + error.message;
+            return newMessages;
           });
         }
-
-        // If no direct images found in chunks, try to find them in the text response (markdown images)
-        if (imageResults.length === 0 && response.text) {
-          const mdImageRegex = /!\[.*?\]\((.*?)\)/g;
-          let match;
-          while ((match = mdImageRegex.exec(response.text)) !== null) {
-            imageResults.push(match[1]);
-          }
-        }
-
-        // Fallback: if still no images, but we have sources, maybe the sources are actually images
-        if (imageResults.length === 0 && sources.length > 0) {
-          imageResults = sources.slice(0, 6).map(s => s.uri);
-        }
-
-        setMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1].text = response.text || "Berikut adalah beberapa gambar yang saya temukan:";
-          newMessages[newMessages.length - 1].imageResults = imageResults;
-          newMessages[newMessages.length - 1].sources = sources;
-          return newMessages;
-        });
       } else {
         const responseStream = await ai.models.generateContentStream({
           model: 'gemini-2.5-flash', // Use gemini-2.5-flash for both to avoid quota limits
