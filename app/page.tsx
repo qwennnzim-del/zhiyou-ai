@@ -968,6 +968,7 @@ export default function ZhiyouApp() {
                           <option value="3:4">3:4 Vertical</option>
                         </select>
                         <button
+                          type="button"
                           onClick={() => setUseLexicaReference(!useLexicaReference)}
                           className={`text-xs font-medium border rounded-full px-3 py-1 transition-colors ${useLexicaReference ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
                         >

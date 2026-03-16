@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
           const imageUrl = lexicaData.images[0].src;
           const imageResponse = await fetch(imageUrl);
           const imageBuffer = await imageResponse.arrayBuffer();
-          const base64Image = Buffer.from(imageBuffer).toString('base64');
+          // Use btoa for edge compatibility instead of Buffer
+          const base64Image = btoa(
+            new Uint8Array(imageBuffer)
+              .reduce((data, byte) => data + String.fromCharCode(byte), '')
+          );
           
           contents.push({
             inlineData: {

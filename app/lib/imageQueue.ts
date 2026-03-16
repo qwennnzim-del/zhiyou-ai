@@ -1,13 +1,13 @@
 import { doc, collection, serverTimestamp, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
-export const addTask = async (userId: string, prompt: string, aspectRatio: string, useLexicaReference: boolean) => {
+export const addTask = async (userId: string, prompt: string, aspectRatio: string, useLexicaReference: boolean = false) => {
   const taskRef = doc(collection(db, 'image_tasks'));
   await setDoc(taskRef, {
     userId,
     prompt,
     aspectRatio,
-    useLexicaReference,
+    useLexicaReference: !!useLexicaReference,
     status: 'pending',
     createdAt: serverTimestamp(),
   });
