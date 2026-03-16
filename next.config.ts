@@ -1,5 +1,6 @@
 import type {NextConfig} from 'next';
 
+// Trigger GitHub Sync after repository rename
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: {
