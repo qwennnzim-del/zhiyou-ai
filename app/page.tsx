@@ -954,19 +954,17 @@ export default function ZhiyouApp() {
                       </button>
                     </div>
                     {featureMode === 'image' && (
-                      <div className="flex items-center gap-2">
-                        <select 
-                          value={aspectRatio}
-                          onChange={(e) => setAspectRatio(e.target.value)}
-                          className="text-xs font-medium bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700 outline-none focus:border-blue-300"
-                        >
-                          <option value="1:1">1:1 Square</option>
-                          <option value="16:9">16:9 Landscape</option>
-                          <option value="9:16">9:16 Portrait</option>
-                          <option value="4:3">4:3 Standard</option>
-                          <option value="3:4">3:4 Vertical</option>
-                        </select>
-                      </div>
+                      <select 
+                        value={aspectRatio}
+                        onChange={(e) => setAspectRatio(e.target.value)}
+                        className="text-xs font-medium bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-gray-700 outline-none focus:border-blue-300"
+                      >
+                        <option value="1:1">1:1 Square</option>
+                        <option value="16:9">16:9 Landscape</option>
+                        <option value="9:16">9:16 Portrait</option>
+                        <option value="4:3">4:3 Standard</option>
+                        <option value="3:4">3:4 Vertical</option>
+                      </select>
                     )}
                   </div>
                 )}
