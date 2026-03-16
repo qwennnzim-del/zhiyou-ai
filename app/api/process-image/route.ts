@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
             binary += String.fromCharCode(bytes[i]);
           }
           const base64Image = btoa(binary);
-          );
           
           contents.push({
             inlineData: {
